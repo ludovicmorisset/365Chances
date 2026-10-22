@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" fill="none">
+  <rect width="1200" height="650" rx="28" fill="#F5F3EE"/>
+  <rect x="48" y="48" width="1104" height="554" rx="24" fill="#FFFEFA" stroke="#E8E6DD" stroke-width="2"/>
+  <rect x="48" y="48" width="1104" height="74" rx="24" fill="#285641"/>
+  <path d="M48 98h1104v24H48z" fill="#285641"/>
+  <rect x="79" y="72" width="34" height="34" rx="11" fill="#FFFEFA" fill-opacity=".12"/>
+  <path d="M88 82h16v15H88zM91 79v6m10-6v6m-13 0h18m-12 5h2m3 0h2" stroke="#FFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="127" y="96" fill="#FFFEFA" font-family="Arial,sans-serif" font-size="21" font-weight="700">365 Chances</text>
+  <rect x="924" y="74" width="105" height="25" rx="12.5" fill="#FFF" fill-opacity=".12"/>
+  <text x="945" y="91" fill="#E6EFE7" font-family="Arial,sans-serif" font-size="11" font-weight="600">Accueil</text>
+  <rect x="1044" y="72" width="82" height="29" rx="8" fill="#FFFEFA"/>
+  <text x="1057" y="91" fill="#285641" font-family="Arial,sans-serif" font-size="10" font-weight="700">Connexion</text>
+  <text x="98" y="173" fill="#285641" font-family="Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="2">LE PLAISIR DE JOUER ENSEMBLE</text>
+  <path d="M98 180h24" stroke="#E87A4B" stroke-width="2"/>
+  <text x="98" y="232" fill="#202820" font-family="Georgia,serif" font-size="52" letter-spacing="-2">Un jour, une chance.</text>
+  <text x="100" y="269" fill="#788077" font-family="Arial,sans-serif" font-size="15">Choisissez une tombola et réservez vos dates pour participer au tirage.</text>
+  <text x="100" y="294" fill="#788077" font-family="Arial,sans-serif" font-size="15">Une façon simple et conviviale de soutenir vos projets.</text>
+  <rect x="100" y="328" width="1000" height="1" fill="#E8E6DD"/>
+  <text x="100" y="375" fill="#202820" font-family="Georgia,serif" font-size="26">Les tombolas du moment</text>
+  <text x="100" y="401" fill="#788077" font-family="Arial,sans-serif" font-size="13">Les prochaines aventures commencent ici.</text>
+  <rect x="100" y="428" width="1000" height="130" rx="15" fill="#F8F7F2" stroke="#EEECE4" stroke-width="2"/>
+  <circle cx="600" cy="478" r="22" fill="#E8F0E9"/>
+  <path d="M600 466v23m-8-17c0-4 3-6 8-6s8 2 8 6c0 8-16 4-16 11 0 4 3 6 8 6s8-2 8-6" stroke="#285641" stroke-width="1.8" stroke-linecap="round"/>
+  <text x="600" y="522" text-anchor="middle" fill="#454D43" font-family="Arial,sans-serif" font-size="14" font-weight="700">La prochaine aventure commence ici.</text>
+  <text x="600" y="541" text-anchor="middle" fill="#899087" font-family="Arial,sans-serif" font-size="11">Aucune tombola pour le moment — revenez bientôt !</text>
+</svg>

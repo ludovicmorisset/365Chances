@@ -89,17 +89,15 @@ def initialize_db():
                     PRIMARY KEY (raffle_id, date)
                 )"""
             )
-        connection.execute(
-            "INSERT OR IGNORE INTO raffles (id, slug, title, year, description) VALUES (1, 'tombola-2026', '365 Chances', 2026, 'Chaque date est un ticket pour le grand tirage.')"
-        )
-        connection.execute(
-            "UPDATE raffles SET title = '365 Chances', description = 'Chaque date est un ticket pour le grand tirage.' WHERE id = 1 AND title = 'Les jours chanceux'"
-        )
         if "legacy_bookings" in {row["name"] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}:
             connection.execute(
                 "INSERT OR IGNORE INTO bookings (raffle_id, date, first_name, last_name, phone, created_at) SELECT 1, date, first_name, last_name, phone, created_at FROM legacy_bookings"
             )
             connection.execute("DROP TABLE legacy_bookings")
+        connection.execute(
+            "DELETE FROM raffles WHERE id = 1 AND slug = 'tombola-2026' AND title = '365 Chances' AND description = 'Chaque date est un ticket pour le grand tirage.' AND NOT EXISTS (SELECT 1 FROM bookings WHERE raffle_id = 1)"
+        )
+
 
 
 def raffle_payload(row):
@@ -207,7 +205,12 @@ def add_security_headers(response):
 
 @app.get("/")
 def index():
-    return send_from_directory(BASE_DIR, "tombola.html")
+    return send_from_directory(BASE_DIR, "index.html")
+
+
+@app.get("/assets/<path:filename>")
+def assets(filename):
+    return send_from_directory(BASE_DIR / "assets", filename)
 
 
 @app.get("/api/health")
@@ -302,8 +305,6 @@ def delete_raffle(raffle_id):
     denied = require_admin()
     if denied:
         return denied
-    if raffle_id == 1:
-        return jsonify(error="La tombola principale ne peut pas être supprimée."), 400
     with connect_db() as connection:
         cursor = connection.execute("DELETE FROM raffles WHERE id = ?", (raffle_id,))
     if cursor.rowcount == 0:

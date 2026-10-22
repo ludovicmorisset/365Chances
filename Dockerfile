@@ -8,7 +8,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py tombola.html ./
+COPY app.py index.html ./
+COPY assets ./assets
 RUN mkdir -p /data && chown -R 10001:10001 /app /data
 USER 10001:10001
 EXPOSE 8080
