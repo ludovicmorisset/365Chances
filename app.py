@@ -37,6 +37,11 @@ PUBLIC_URL = os.environ.get("PUBLIC_URL", "")
 PAYPAL_CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID", "")
 PAYPAL_CLIENT_SECRET = os.environ.get("PAYPAL_CLIENT_SECRET", "")
 PAYPAL_ENVIRONMENT = os.environ.get("PAYPAL_ENVIRONMENT", "sandbox").lower()
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER", "")
+if any((TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER)) and not all((TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER)):
+    raise RuntimeError("TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER must all be configured")
 if PAYPAL_ENVIRONMENT not in ("sandbox", "live"):
     raise RuntimeError("PAYPAL_ENVIRONMENT must be 'sandbox' or 'live'")
 PAYPAL_BASE_URL = "https://api-m.paypal.com" if PAYPAL_ENVIRONMENT == "live" else "https://api-m.sandbox.paypal.com"
@@ -295,7 +300,31 @@ def complete_paypal_booking(payment_order_id):
             (order["raffle_id"], order["date"], order["first_name"], order["last_name"], order["phone"]),
         )
         connection.execute("UPDATE payment_orders SET status = 'completed' WHERE id = ?", (payment_order_id,))
+        raffle = connection.execute("SELECT title FROM raffles WHERE id = ?", (order["raffle_id"],)).fetchone()
+    send_booking_confirmation_sms(order["phone"], order["first_name"], order["date"], raffle["title"])
     return True
+
+
+def send_booking_confirmation_sms(phone, first_name, booking_date, raffle_title):
+    if not all((TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER)):
+        return
+    message = (
+        f"Bonjour {first_name}, votre réservation du {booking_date} pour la tombola "
+        f"« {raffle_title} » est confirmée. Merci pour votre participation !"
+    )
+    payload = urllib.parse.urlencode({"From": TWILIO_FROM_NUMBER, "To": phone, "Body": message}).encode()
+    credentials = base64.b64encode(f"{TWILIO_ACCOUNT_SID}:{TWILIO_AUTH_TOKEN}".encode()).decode()
+    sms_request = urllib.request.Request(
+        f"https://api.twilio.com/2010-04-01/Accounts/{urllib.parse.quote(TWILIO_ACCOUNT_SID)}/Messages.json",
+        data=payload,
+        headers={"Authorization": f"Basic {credentials}", "Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(sms_request, timeout=20) as response:
+            response.read()
+    except (OSError, urllib.error.URLError, urllib.error.HTTPError) as error:
+        app.logger.error("Échec de l’envoi du SMS de confirmation : %s", error)
 
 
 def paypal_access_token():
@@ -569,7 +598,10 @@ def admin_raffles():
     if not session.get("admin_user_id"):
         return jsonify(error="Connexion administrateur requise."), 401
     with connect_db() as connection:
-        raffles = [raffle_payload(row) for row in connection.execute("SELECT * FROM raffles ORDER BY id")]
+        rows = connection.execute(
+            "SELECT raffles.*, (SELECT COUNT(*) FROM bookings WHERE bookings.raffle_id = raffles.id) AS booking_count FROM raffles ORDER BY id"
+        ).fetchall()
+        raffles = [{**raffle_payload(row), "bookingCount": row["booking_count"]} for row in rows]
     return jsonify(raffles=raffles)
 
 
@@ -796,6 +828,7 @@ def create_booking():
             )
     except sqlite3.IntegrityError:
         return jsonify(error="Cette date est déjà réservée."), 409
+    send_booking_confirmation_sms(phone.strip(), first_name.strip(), date_value, raffle["title"])
     return jsonify(date=date_value, priceCents=PRICE_CENTS), 201
 
 

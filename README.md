@@ -71,6 +71,10 @@ Nginx Proxy Manager gère le certificat HTTPS. Le port applicatif `8080` doit ê
 4. Redémarrez l’application avec `docker compose up -d --build`. Sans identifiants PayPal, le calendrier reste consultable mais l’achat public est désactivé.
 5. La création et la capture des paiements se font côté serveur. L’application valide la signature du webhook ainsi que le montant et l’état de la commande PayPal avant de réserver la date.
 
+## Confirmation par SMS
+
+Configurez `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` et `TWILIO_FROM_NUMBER` dans `.env` pour envoyer automatiquement un SMS de confirmation après une réservation admin ou un paiement PayPal confirmé. Sans ces trois paramètres, l’envoi SMS reste désactivé.
+
 Les identifiants PayPal sont des secrets : ne les partagez pas et ne les ajoutez jamais au dépôt Git. Les remboursements restent à traiter depuis le compte PayPal.
 
 ## Mises à jour

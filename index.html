@@ -62,7 +62,7 @@
     </section>
 
     <section class="view" id="admin-view" aria-labelledby="admin-title"><div class="admin-intro"><div><p class="eyebrow">Espace sécurisé</p><h1 id="admin-title">Administration.</h1><p class="admin-copy">Gérez les dates, les acheteurs et le tirage de votre tombola.</p></div><div class="admin-summary"><div class="metric"><strong id="admin-count">0</strong><span>dates réservées</span></div><div class="metric"><strong id="admin-revenue">0 €</strong><span>montant des participations</span></div></div></div>
-       <section class="admin-panel" id="raffle-admin-panel" style="margin-bottom:20px"><div class="admin-toolbar"><div><h2>Personnaliser les tombolas</h2><p>Créez plusieurs tombolas et gérez leur identité visuelle.</p></div><div class="raffle-controls"><select id="admin-raffle-select" aria-label="Choisir une tombola"></select><button class="action-button admin-add" id="new-raffle" type="button" hidden>Nouvelle tombola</button></div></div><form class="raffle-form" id="raffle-form"><div class="field"><label for="raffle-title">Titre</label><input id="raffle-title" name="title" maxlength="100" required></div><div class="field"><label for="raffle-year">Année du calendrier</label><input id="raffle-year" name="year" type="number" min="1900" max="2100" step="1" required></div><div class="field"><label for="raffle-logo">Logo (URL HTTPS ou chemin local)</label><input id="raffle-logo" name="logoUrl" maxlength="500" placeholder="https://…"></div><div class="field field-wide"><label for="raffle-description">Description</label><textarea id="raffle-description" name="description" maxlength="500"></textarea></div><div class="field"><label for="raffle-primary">Couleur principale</label><input id="raffle-primary" name="primaryColor" type="color" value="#285641"></div><div class="field"><label for="raffle-accent">Couleur d’accent</label><input id="raffle-accent" name="accentColor" type="color" value="#e87a4b"></div><div class="raffle-form-actions"><button class="action-button admin-add" id="save-raffle" type="submit">Enregistrer</button><button class="remove-button" id="delete-raffle" type="button">Supprimer cette tombola</button></div></form></section>
+        <section class="admin-panel" id="raffle-admin-panel" style="margin-bottom:20px"><div class="admin-toolbar"><div><h2>Personnaliser les tombolas</h2><p>Créez plusieurs tombolas et gérez leur identité visuelle.</p></div><div class="raffle-controls"><select id="admin-raffle-select" aria-label="Choisir une tombola"></select><button class="action-button admin-add" id="new-raffle" type="button" hidden>Nouvelle tombola</button></div></div><form class="raffle-form" id="raffle-form"><div class="field"><label for="raffle-title">Titre</label><input id="raffle-title" name="title" maxlength="100" required></div><div class="field"><label for="raffle-year">Année du calendrier</label><input id="raffle-year" name="year" type="number" min="1900" max="2100" step="1" required></div><div class="field"><label for="raffle-logo">Logo (URL HTTPS ou chemin local)</label><input id="raffle-logo" name="logoUrl" maxlength="500" placeholder="https://…"></div><div class="field field-wide"><label for="raffle-description">Description</label><textarea id="raffle-description" name="description" maxlength="500"></textarea></div><div class="field"><label for="raffle-primary">Couleur principale</label><input id="raffle-primary" name="primaryColor" type="color" value="#285641"></div><div class="field"><label for="raffle-accent">Couleur d’accent</label><input id="raffle-accent" name="accentColor" type="color" value="#e87a4b"></div><div class="raffle-form-actions"><button class="action-button admin-add" id="save-raffle" type="submit">Enregistrer</button><button class="remove-button" id="delete-raffle" type="button">Supprimer cette tombola</button></div></form><div class="table-wrap"><table><thead><tr><th>Tombola</th><th>Année</th><th>Statut</th><th>Participants</th><th>Actions</th></tr></thead><tbody id="admin-raffles"></tbody></table><div class="admin-empty" id="raffles-empty" hidden>Aucune tombola créée.</div></div></section>
       <section class="admin-panel"><div class="admin-toolbar"><div><h2>Dates réservées & acheteurs</h2><p>Chaque réservation est enregistrée au tarif de 2 € par date.</p></div><button class="action-button admin-add" id="add-booking" type="button">Ajouter une date</button></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>Prix</th><th>Actions</th></tr></thead><tbody id="admin-entries"></tbody></table><div class="admin-empty" id="admin-empty">Aucune date réservée pour le moment.</div></div></section>
     </section>
   </main>
@@ -177,8 +177,14 @@
         document.getElementById("admin-empty").hidden = count > 0;
       }
       function raffleQuery() { return activeRaffle ? `?raffle=${activeRaffle.id}` : ""; }
-      function renderRaffles() {
-        const options = raffles.map((raffle) => `<option value="${raffle.id}">${escapeHtml(raffle.title)}</option>`).join("");
+       function renderRaffles() {
+         const options = raffles.map((raffle) => `<option value="${raffle.id}">${escapeHtml(raffle.title)}</option>`).join("");
+         const currentYear = new Date().getFullYear();
+         document.getElementById("admin-raffles").innerHTML = raffles.map((raffle) => {
+           const status = raffle.year < currentYear ? "Terminée" : raffle.year === currentYear ? "En cours" : "À venir";
+           return `<tr data-admin-raffle="${raffle.id}"><td class="table-name">${escapeHtml(raffle.title)}</td><td>${raffle.year}</td><td>${status}</td><td>${raffle.bookingCount || 0}</td><td><button class="remove-button" type="button" data-select-raffle="${raffle.id}">Voir les acheteurs</button></td></tr>`;
+         }).join("");
+         document.getElementById("raffles-empty").hidden = raffles.length > 0;
         document.getElementById("public-raffle-select").innerHTML = options;
         document.getElementById("admin-raffle-select").innerHTML = options;
         document.getElementById("admin-raffle-select").hidden = raffles.length < 2;
@@ -262,12 +268,13 @@
           renderSummary();
           return;
         }
-         const state = await api(`/api/state${raffleQuery()}`);
+         const state = await api(isAdmin ? `/api/admin/entries${raffleQuery()}` : `/api/state${raffleQuery()}`);
          if (state.raffle && (!activeRaffle || state.raffle.id !== activeRaffle.id)) applyRaffle(state.raffle);
-         paymentEnabled = Boolean(state.paymentEnabled);
+         if (!isAdmin) paymentEnabled = Boolean(state.paymentEnabled);
          applyRaffle(activeRaffle);
-         bookings = Object.fromEntries((state.dates || []).map((key) => [key, { reserved: true }]));
+         bookings = isAdmin ? (state.bookings || {}) : Object.fromEntries((state.dates || []).map((key) => [key, { reserved: true }]));
 
+        renderRaffles();
         renderCalendar();
         renderSummary();
       }
@@ -388,22 +395,28 @@
          activeRaffle = raffles.find((raffle) => raffle.id === Number(event.target.value));
          if (activeRaffle) { applyRaffle(activeRaffle); await refreshState(); }
        });
-      document.getElementById("admin-raffle-select").addEventListener("change", async (event) => {
-          activeRaffle = raffles.find((raffle) => raffle.id === Number(event.target.value));
-          if (activeRaffle) { applyRaffle(activeRaffle); await refreshState(); await refreshAdmin(); }
-        });
-      document.getElementById("new-raffle").addEventListener("click", async () => {
-        try {
-          const form = document.getElementById("raffle-form");
-          if (!form.reportValidity()) return;
-          const result = await api("/api/admin/raffles", { method:"POST", body:JSON.stringify({ title:document.getElementById("raffle-title").value.trim() || "Nouvelle tombola", year:Number(document.getElementById("raffle-year").value) || new Date().getFullYear(), description:document.getElementById("raffle-description").value.trim(), logoUrl:document.getElementById("raffle-logo").value.trim(), primaryColor:document.getElementById("raffle-primary").value, accentColor:document.getElementById("raffle-accent").value }) });
-          raffles.push(result.raffle);
-          activeRaffle = result.raffle;
-          applyRaffle(result.raffle);
-          setView("admin");
-          showNotice("Tombola créée. Personnalisez ses informations puis enregistrez.");
-        } catch (error) { showNotice(error.message, true); }
-      });
+       async function selectAdminRaffle(raffleId) {
+         activeRaffle = raffles.find((raffle) => raffle.id === Number(raffleId));
+         if (activeRaffle) { applyRaffle(activeRaffle); await refreshState(); await refreshAdmin(); }
+       }
+       document.getElementById("admin-raffle-select").addEventListener("change", (event) => selectAdminRaffle(event.target.value));
+       document.getElementById("admin-raffles").addEventListener("click", (event) => {
+         const button = event.target.closest("button[data-select-raffle]");
+         if (button) selectAdminRaffle(button.dataset.selectRaffle);
+       });
+       document.getElementById("new-raffle").addEventListener("click", () => {
+         activeRaffle = null;
+         bookings = {};
+         renderCalendar();
+         renderSummary();
+         document.getElementById("raffle-form").reset();
+         document.getElementById("raffle-year").value = new Date().getFullYear();
+         document.getElementById("raffle-title").value = "Nouvelle tombola";
+         document.getElementById("raffle-form").hidden = false;
+         document.getElementById("save-raffle").textContent = "Créer la tombola";
+         document.getElementById("delete-raffle").disabled = true;
+         renderRaffles();
+       });
       document.getElementById("raffle-form").addEventListener("submit", async (event) => {
         event.preventDefault();
         const values = new FormData(event.currentTarget);
