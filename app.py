@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import hmac
 import os
@@ -6,7 +7,11 @@ import secrets
 import smtplib
 import sqlite3
 import ssl
+import json
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
@@ -29,7 +34,16 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME)
 SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "true").lower() == "true"
 PUBLIC_URL = os.environ.get("PUBLIC_URL", "")
+PAYPAL_CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID", "")
+PAYPAL_CLIENT_SECRET = os.environ.get("PAYPAL_CLIENT_SECRET", "")
+PAYPAL_ENVIRONMENT = os.environ.get("PAYPAL_ENVIRONMENT", "sandbox").lower()
+if PAYPAL_ENVIRONMENT not in ("sandbox", "live"):
+    raise RuntimeError("PAYPAL_ENVIRONMENT must be 'sandbox' or 'live'")
+PAYPAL_BASE_URL = "https://api-m.paypal.com" if PAYPAL_ENVIRONMENT == "live" else "https://api-m.sandbox.paypal.com"
 PRICE_CENTS = 200
+BOOKING_HOLD_MINUTES = 15
+PAYMENT_RATE_LIMIT = 20
+payment_attempts = {}
 LOGIN_LIMIT = 10
 LOGIN_WINDOW_SECONDS = 15 * 60
 VERIFICATION_TOKEN_HOURS = 24
@@ -131,7 +145,21 @@ def initialize_db():
         connection.execute(
             "DELETE FROM raffles WHERE id = 1 AND slug = 'tombola-2026' AND title = '365 Chances' AND description = 'Chaque date est un ticket pour le grand tirage.' AND NOT EXISTS (SELECT 1 FROM bookings WHERE raffle_id = 1)"
         )
-
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS payment_orders (
+                id TEXT PRIMARY KEY,
+                raffle_id INTEGER NOT NULL REFERENCES raffles(id) ON DELETE CASCADE,
+                date TEXT NOT NULL,
+                first_name TEXT NOT NULL,
+                last_name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                paypal_order_id TEXT UNIQUE,
+                status TEXT NOT NULL DEFAULT 'pending',
+                expires_at TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )"""
+        )
+        connection.execute("CREATE INDEX IF NOT EXISTS payment_orders_hold_idx ON payment_orders (raffle_id, date, status, expires_at)")
 
 
 def raffle_payload(row):
@@ -224,6 +252,78 @@ def login_rate_limited():
     return False
 
 
+def paypal_request(path, payload=None, access_token=None):
+    body = json.dumps(payload).encode() if payload is not None else None
+    headers = {"Content-Type": "application/json"}
+    if access_token:
+        headers["Authorization"] = f"Bearer {access_token}"
+    headers["Prefer"] = "return=representation"
+    request_data = urllib.request.Request(f"{PAYPAL_BASE_URL}{path}", data=body, headers=headers, method="POST")
+    with urllib.request.urlopen(request_data, timeout=20) as response:
+        return json.loads(response.read())
+
+
+def paypal_get(path, access_token):
+    request_data = urllib.request.Request(f"{PAYPAL_BASE_URL}{path}", headers={"Authorization": f"Bearer {access_token}"})
+    with urllib.request.urlopen(request_data, timeout=20) as response:
+        return json.loads(response.read())
+
+
+def validate_paypal_order(paypal_order, payment_order):
+    if paypal_order.get("id") != payment_order["paypal_order_id"] or paypal_order.get("status") != "COMPLETED":
+        return False
+    purchase_units = paypal_order.get("purchase_units", [])
+    if len(purchase_units) != 1 or purchase_units[0].get("custom_id") != payment_order["id"]:
+        return False
+    captures = purchase_units[0].get("payments", {}).get("captures", [])
+    if len(captures) != 1 or captures[0].get("status") != "COMPLETED":
+        return False
+    amount = captures[0].get("amount", {})
+    return amount.get("currency_code") == "EUR" and amount.get("value") == f"{PRICE_CENTS / 100:.2f}"
+
+
+def complete_paypal_booking(payment_order_id):
+    with connect_db() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        order = connection.execute("SELECT * FROM payment_orders WHERE id = ?", (payment_order_id,)).fetchone()
+        if not order:
+            return False
+        if order["status"] == "completed":
+            return True
+        connection.execute(
+            "INSERT INTO bookings (raffle_id, date, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?)",
+            (order["raffle_id"], order["date"], order["first_name"], order["last_name"], order["phone"]),
+        )
+        connection.execute("UPDATE payment_orders SET status = 'completed' WHERE id = ?", (payment_order_id,))
+    return True
+
+
+def paypal_access_token():
+    credentials = urllib.parse.urlencode({"grant_type": "client_credentials"}).encode()
+    request_data = urllib.request.Request(
+        f"{PAYPAL_BASE_URL}/v1/oauth2/token",
+        data=credentials,
+        headers={
+            "Authorization": "Basic " + base64.b64encode(f"{PAYPAL_CLIENT_ID}:{PAYPAL_CLIENT_SECRET}".encode()).decode(),
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(request_data, timeout=20) as response:
+        return json.loads(response.read())["access_token"]
+
+
+def payments_rate_limited():
+    now = time.monotonic()
+    address = request.remote_addr or "unknown"
+    attempts = [stamp for stamp in payment_attempts.get(address, []) if now - stamp < LOGIN_WINDOW_SECONDS]
+    payment_attempts[address] = attempts
+    if len(attempts) >= PAYMENT_RATE_LIMIT:
+        return True
+    attempts.append(now)
+    return False
+
+
 def send_verification_email(email, token):
     verification_url = f"{PUBLIC_URL.rstrip('/')}/api/verify-email?token={token}"
     message = EmailMessage()
@@ -287,8 +387,174 @@ def public_state():
             raffle = connection.execute("SELECT * FROM raffles WHERE id = ?", (raffle_id,)).fetchone()
         if not raffle:
             return jsonify(error="Cette tombola n’existe pas."), 404
-        dates = [row["date"] for row in connection.execute("SELECT date FROM bookings WHERE raffle_id = ? ORDER BY date", (raffle["id"],))]
-    return jsonify(year=raffle["year"], priceCents=PRICE_CENTS, dates=dates, raffle=raffle_payload(raffle))
+        dates = [row["date"] for row in connection.execute(
+            "SELECT date FROM bookings WHERE raffle_id = ? UNION SELECT date FROM payment_orders WHERE raffle_id = ? AND status = 'pending' AND expires_at > ? ORDER BY date",
+            (raffle["id"], raffle["id"], datetime.now(timezone.utc).isoformat()),
+        )]
+    return jsonify(year=raffle["year"], priceCents=PRICE_CENTS, dates=dates, raffle=raffle_payload(raffle), paymentEnabled=bool(PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET))
+
+
+@app.post("/api/payments/paypal/orders")
+def create_paypal_order():
+    if not PAYPAL_CLIENT_ID or not PAYPAL_CLIENT_SECRET:
+        return jsonify(error="Le paiement en ligne n’est pas encore configuré."), 503
+    if payments_rate_limited():
+        return jsonify(error="Trop de tentatives. Réessayez dans quelques minutes."), 429
+    body = request.get_json(silent=True) or {}
+    raffle_id = body.get("raffleId")
+    raffle = get_raffle(raffle_id) if isinstance(raffle_id, int) and not isinstance(raffle_id, bool) else None
+    if not raffle:
+        return jsonify(error="Cette tombola n’existe pas."), 404
+    date_value = body.get("date")
+    first_name = body.get("firstName")
+    last_name = body.get("lastName")
+    phone = body.get("phone")
+    if not is_valid_date(date_value, raffle["year"]):
+        return jsonify(error=f"Date invalide : sélectionnez une date de {raffle['year']}."), 400
+    if any(not isinstance(value, str) or not value.strip() for value in (first_name, last_name, phone)):
+        return jsonify(error="Le prénom, le nom et le téléphone sont obligatoires."), 400
+    if len(first_name.strip()) > 60 or len(last_name.strip()) > 60 or len(phone.strip()) > 25 or sum(character.isdigit() for character in phone.strip()) < 8:
+        return jsonify(error="Vérifiez le prénom, le nom et le numéro de téléphone."), 400
+    order_id = secrets.token_urlsafe(24)
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=BOOKING_HOLD_MINUTES)).isoformat()
+    try:
+        with connect_db() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            now = datetime.now(timezone.utc).isoformat()
+            if connection.execute("SELECT 1 FROM bookings WHERE raffle_id = ? AND date = ?", (raffle_id, date_value)).fetchone() or connection.execute(
+                "SELECT 1 FROM payment_orders WHERE raffle_id = ? AND date = ? AND status = 'pending' AND expires_at > ?",
+                (raffle_id, date_value, now),
+            ).fetchone():
+                return jsonify(error="Cette date vient d’être réservée ou est en cours de paiement."), 409
+            connection.execute(
+                "INSERT INTO payment_orders (id, raffle_id, date, first_name, last_name, phone, status, expires_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)",
+                (order_id, raffle_id, date_value, first_name.strip(), last_name.strip(), phone.strip(), expires_at),
+            )
+        access_token = paypal_access_token()
+        origin = PUBLIC_URL.rstrip("/") or request.url_root.rstrip("/")
+        order = paypal_request("/v2/checkout/orders", {
+            "intent": "CAPTURE",
+            "purchase_units": [{
+                "reference_id": order_id,
+                "custom_id": order_id,
+                "description": f"Tombola {raffle['title']} — {date_value}",
+                "amount": {"currency_code": "EUR", "value": f"{PRICE_CENTS / 100:.2f}"},
+            }],
+            "payment_source": {
+                "paypal": {
+                    "experience_context": {
+                        "brand_name": "365 Chances",
+                        "user_action": "PAY_NOW",
+                        "return_url": f"{origin}/?paypal=success&raffle={raffle_id}",
+                        "cancel_url": f"{origin}/?paypal=cancel&raffle={raffle_id}&hold={order_id}",
+                    },
+                },
+            },
+        }, access_token)
+        approval_url = next((link["href"] for link in order.get("links", []) if link.get("rel") in ("approve", "payer-action")), None)
+        if not approval_url:
+            raise RuntimeError("PayPal n’a pas fourni de lien de paiement.")
+        with connect_db() as connection:
+            connection.execute("UPDATE payment_orders SET paypal_order_id = ? WHERE id = ? AND status = 'pending'", (order["id"], order_id))
+        return jsonify(approvalUrl=approval_url, orderId=order["id"], expiresInMinutes=BOOKING_HOLD_MINUTES), 201
+    except (OSError, urllib.error.URLError, urllib.error.HTTPError, KeyError, RuntimeError, json.JSONDecodeError, ValueError) as error:
+        with connect_db() as connection:
+            connection.execute("DELETE FROM payment_orders WHERE id = ? AND status = 'pending' AND paypal_order_id IS NULL", (order_id,))
+        app.logger.error("Échec de création de commande PayPal : %s", error)
+        return jsonify(error="Impossible de créer le paiement PayPal. Réessayez."), 503
+
+
+@app.post("/api/payments/paypal/capture")
+def capture_paypal_order():
+    if not PAYPAL_CLIENT_ID or not PAYPAL_CLIENT_SECRET:
+        return jsonify(error="Le paiement en ligne n’est pas encore configuré."), 503
+    body = request.get_json(silent=True) or {}
+    paypal_order_id = body.get("orderId")
+    if not isinstance(paypal_order_id, str) or len(paypal_order_id) > 100:
+        return jsonify(error="Commande de paiement invalide."), 400
+    with connect_db() as connection:
+        order_row = connection.execute("SELECT * FROM payment_orders WHERE paypal_order_id = ?", (paypal_order_id,)).fetchone()
+    if not order_row:
+        return jsonify(error="Cette commande de paiement est inconnue ou expirée."), 404
+    if order_row["status"] == "completed":
+        return jsonify(date=order_row["date"], raffleId=order_row["raffle_id"], completed=True)
+    if order_row["expires_at"] <= datetime.now(timezone.utc).isoformat():
+        return jsonify(error="Le délai de paiement est dépassé. Sélectionnez à nouveau votre date."), 410
+    try:
+        access_token = paypal_access_token()
+        result = paypal_get(f"/v2/checkout/orders/{urllib.parse.quote(paypal_order_id)}", access_token)
+        if result.get("status") == "APPROVED":
+            result = paypal_request(f"/v2/checkout/orders/{urllib.parse.quote(paypal_order_id)}/capture", {}, access_token)
+        if not validate_paypal_order(result, order_row):
+            return jsonify(error="Le paiement n’a pas pu être confirmé."), 402
+    except urllib.error.HTTPError as error:
+        if error.code == 422:
+            return jsonify(error="Le paiement PayPal n’est pas validé."), 402
+        app.logger.error("Échec de confirmation PayPal : %s", error)
+        return jsonify(error="Impossible de confirmer le paiement. Contactez l’organisateur avant de réessayer."), 503
+    except (OSError, urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as error:
+        app.logger.error("Réponse PayPal invalide : %s", error)
+        return jsonify(error="Impossible de confirmer le paiement. Contactez l’organisateur avant de réessayer."), 503
+    try:
+        completed = complete_paypal_booking(order_row["id"])
+        if not completed:
+            return jsonify(error="Cette réservation de paiement a expiré."), 410
+    except sqlite3.IntegrityError:
+        app.logger.error("Paiement confirmé mais date déjà réservée, commande PayPal %s", paypal_order_id)
+        return jsonify(error="Paiement reçu, mais la date a été prise entre-temps. Contactez l’organisateur pour un remboursement."), 409
+    return jsonify(date=order_row["date"], raffleId=order_row["raffle_id"], completed=True)
+
+
+@app.post("/api/payments/paypal/webhook")
+def paypal_webhook():
+    if not PAYPAL_CLIENT_ID or not PAYPAL_CLIENT_SECRET:
+        return jsonify(error="Le paiement en ligne n’est pas configuré."), 503
+    body = request.get_json(silent=True) or {}
+    headers = {
+        "auth_algo": request.headers.get("PayPal-Auth-Algo", ""),
+        "cert_url": request.headers.get("PayPal-Cert-Url", ""),
+        "transmission_id": request.headers.get("PayPal-Transmission-Id", ""),
+        "transmission_sig": request.headers.get("PayPal-Transmission-Sig", ""),
+        "transmission_time": request.headers.get("PayPal-Transmission-Time", ""),
+        "webhook_id": os.environ.get("PAYPAL_WEBHOOK_ID", ""),
+        "webhook_event": body,
+    }
+    if not headers["webhook_id"]:
+        return jsonify(error="Le webhook PayPal n’est pas configuré."), 503
+    try:
+        result = paypal_request("/v1/notifications/verify-webhook-signature", headers, paypal_access_token())
+        if result.get("verification_status") != "SUCCESS":
+            return jsonify(error="Signature de webhook invalide."), 400
+    except (OSError, urllib.error.URLError, urllib.error.HTTPError, KeyError, json.JSONDecodeError) as error:
+        app.logger.error("Échec de validation du webhook PayPal : %s", error)
+        return jsonify(error="Validation PayPal indisponible."), 503
+    event = body.get("event_type")
+    resource = body.get("resource", {})
+    related_ids = resource.get("supplementary_data", {}).get("related_ids", {})
+    paypal_order_id = related_ids.get("order_id")
+    if event == "PAYMENT.CAPTURE.COMPLETED" and isinstance(paypal_order_id, str):
+        try:
+            paypal_order = paypal_get(f"/v2/checkout/orders/{urllib.parse.quote(paypal_order_id)}", paypal_access_token())
+            custom_id = paypal_order.get("purchase_units", [{}])[0].get("custom_id")
+            with connect_db() as connection:
+                order = connection.execute("SELECT * FROM payment_orders WHERE id = ?", (custom_id,)).fetchone()
+            if order and order["paypal_order_id"] == paypal_order_id and validate_paypal_order(paypal_order, order):
+                complete_paypal_booking(order["id"])
+        except (OSError, sqlite3.IntegrityError, urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, IndexError) as error:
+            app.logger.error("Échec de finalisation du paiement webhook %s : %s", paypal_order_id, error)
+            return jsonify(error="Impossible de finaliser la réservation."), 503
+    return jsonify(received=True)
+
+
+@app.post("/api/payments/paypal/cancel")
+def cancel_paypal_order():
+    body = request.get_json(silent=True) or {}
+    order_id = body.get("orderId")
+    if not isinstance(order_id, str):
+        return jsonify(error="Commande invalide."), 400
+    with connect_db() as connection:
+        connection.execute("DELETE FROM payment_orders WHERE (id = ? OR paypal_order_id = ?) AND status = 'pending'", (order_id, order_id))
+    return jsonify(cancelled=True)
 
 
 @app.get("/api/raffles")
@@ -347,7 +613,10 @@ def update_raffle(raffle_id):
         return jsonify(error="Cette tombola n’existe pas."), 404
     if year != current_raffle["year"]:
         with connect_db() as connection:
-            booking_count = connection.execute("SELECT COUNT(*) FROM bookings WHERE raffle_id = ?", (raffle_id,)).fetchone()[0]
+            booking_count = connection.execute(
+                "SELECT (SELECT COUNT(*) FROM bookings WHERE raffle_id = ?) + (SELECT COUNT(*) FROM payment_orders WHERE raffle_id = ? AND status = 'pending' AND expires_at > ?)",
+                (raffle_id, raffle_id, datetime.now(timezone.utc).isoformat()),
+            ).fetchone()[0]
         if booking_count:
             return jsonify(error="Supprimez ou libérez les réservations avant de changer l’année de cette tombola."), 409
     with connect_db() as connection:
@@ -515,6 +784,12 @@ def create_booking():
         return jsonify(error="Numéro de téléphone invalide."), 400
     try:
         with connect_db() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            if connection.execute(
+                "SELECT 1 FROM payment_orders WHERE raffle_id = ? AND date = ? AND status = 'pending' AND expires_at > ?",
+                (raffle_id, date_value, datetime.now(timezone.utc).isoformat()),
+            ).fetchone():
+                return jsonify(error="Cette date est actuellement en cours de paiement."), 409
             connection.execute(
                 "INSERT INTO bookings (raffle_id, date, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?)",
                 (raffle_id, date_value, first_name.strip(), last_name.strip(), phone.strip()),

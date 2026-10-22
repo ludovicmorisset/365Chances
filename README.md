@@ -1,13 +1,13 @@
 # 365 Chances
 
-Application web pour gérer plusieurs tombolas annuelles : calendrier configurable par année, réservations par date, liste des acheteurs protégée par un compte administrateur, personnalisation des titres, descriptions, couleurs et logos, et tirage aléatoire. Chaque date réservée correspond à une participation de **2 €**. Le site ne collecte ni ne traite les paiements : l’organisateur les gère séparément.
+Application web pour gérer plusieurs tombolas annuelles : calendrier configurable par année, réservation publique des dates avec paiement PayPal, liste des acheteurs protégée par un compte administrateur, personnalisation des titres, descriptions, couleurs et logos, et tirage aléatoire. Chaque date correspond à une participation de **2 €**. Les paiements sont confirmés par le serveur auprès de PayPal avant l’enregistrement définitif ; une date est bloquée pendant 15 minutes au cours du paiement.
 
 ![Aperçu de l’accueil 365 Chances, sans tombola disponible](assets/accueil-tombola.png)
 
 ## Fonctionnalités
 
 - Page d’accueil répertoriant les tombolas disponibles, avec calendrier accessible après leur sélection.
-- Calendrier public indiquant les dates disponibles et réservées, sans exposer les coordonnées des participants.
+- Calendrier public permettant de choisir une date disponible et de payer 2 € par PayPal ; les dates réservées ou en cours de paiement sont indisponibles.
 - Connexion administrateur par identifiant et mot de passe, avec comptes enregistrés en base et mots de passe hachés.
 - Inscription de comptes facultative via `ALLOW_ADMIN_SIGNUP` ; les nouveaux comptes doivent valider leur adresse email via SMTP avant de se connecter.
 - Espace admin pour gérer plusieurs tombolas, choisir leur année de calendrier et personnaliser leur titre, description, couleurs et logo, ajouter des réservations, consulter les acheteurs, libérer une date et lancer le tirage.
@@ -62,6 +62,16 @@ Le dépôt GitHub héberge le code source. L’application elle-même fonctionne
 6. Ouvrez `https://VOTRE-DOMAINE`, puis choisissez **Connexion admin** et utilisez `ADMIN_USERNAME` et `ADMIN_PASSWORD`. Le compte défini au déploiement est créé et validé automatiquement au démarrage.
 
 Nginx Proxy Manager gère le certificat HTTPS. Le port applicatif `8080` doit être bloqué pour les connexions externes dans le pare-feu ; le cookie de session est limité à HTTPS.
+
+## Configuration des paiements PayPal
+
+1. Créez une application API dans le tableau de bord développeur PayPal et copiez son Client ID ainsi que son Secret dans le fichier `.env` sur le serveur.
+2. Gardez `PAYPAL_ENVIRONMENT=sandbox` pour les essais ; après validation des achats tests, réglez `PAYPAL_ENVIRONMENT=live` et utilisez les identifiants de l’application PayPal Live.
+3. Créez un webhook PayPal vers `https://VOTRE-DOMAINE/api/payments/paypal/webhook` pour l’événement `PAYMENT.CAPTURE.COMPLETED`, puis ajoutez son ID dans `PAYPAL_WEBHOOK_ID`.
+4. Redémarrez l’application avec `docker compose up -d --build`. Sans identifiants PayPal, le calendrier reste consultable mais l’achat public est désactivé.
+5. La création et la capture des paiements se font côté serveur. L’application valide la signature du webhook ainsi que le montant et l’état de la commande PayPal avant de réserver la date.
+
+Les identifiants PayPal sont des secrets : ne les partagez pas et ne les ajoutez jamais au dépôt Git. Les remboursements restent à traiter depuis le compte PayPal.
 
 ## Mises à jour
 
