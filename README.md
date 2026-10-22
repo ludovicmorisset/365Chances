@@ -8,7 +8,8 @@ Application web pour gérer plusieurs tombolas annuelles : calendrier configurab
 
 - Page d’accueil répertoriant les tombolas disponibles, avec calendrier accessible après leur sélection.
 - Calendrier public indiquant les dates disponibles et réservées, sans exposer les coordonnées des participants.
-- Connexion administrateur avec mot de passe défini sur le serveur.
+- Connexion administrateur par identifiant et mot de passe, avec comptes enregistrés en base et mots de passe hachés.
+- Inscription de comptes facultative via `ALLOW_ADMIN_SIGNUP` ; les nouveaux comptes doivent valider leur adresse email via SMTP avant de se connecter.
 - Espace admin pour gérer plusieurs tombolas, choisir leur année de calendrier et personnaliser leur titre, description, couleurs et logo, ajouter des réservations, consulter les acheteurs, libérer une date et lancer le tirage.
 - Base SQLite persistante dans un volume Docker.
 - Application accessible sur le port local 8080, à relier à Nginx Proxy Manager pour le domaine et le HTTPS.
@@ -30,7 +31,7 @@ Le dépôt GitHub héberge le code source. L’application elle-même fonctionne
 3. Connectez-vous au VPS et clonez le dépôt :
 
    ```sh
-   git clone https://github.com/ludovicmorisset/365Chances.git tombola
+   git clone https://github.com/VOTRE-COMPTE/VOTRE-DEPOT.git tombola
    cd tombola
    cp .env.example .env
    ```
@@ -42,7 +43,7 @@ Le dépôt GitHub héberge le code source. L’application elle-même fonctionne
    openssl rand -base64 48
    ```
 
-   Utilisez une valeur différente pour chaque clé. Mettez la première dans `ADMIN_PASSWORD` (au moins 16 caractères) et la seconde dans `SESSION_SECRET` (au moins 32 caractères). Gardez `.env` privé et limité aux permissions du propriétaire :
+   Utilisez une valeur différente pour chaque clé. `ADMIN_USERNAME`, `ADMIN_EMAIL` et `ADMIN_PASSWORD` définissent le compte administrateur initial ; son mot de passe doit faire au moins 16 caractères. Les comptes créés sur le site doivent utiliser un mot de passe d’au moins 12 caractères, et `SESSION_SECRET` doit en faire au moins 32. Pour autoriser l’inscription, réglez `ALLOW_ADMIN_SIGNUP=true`, puis configurez `PUBLIC_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` et `SMTP_USE_TLS`. Gardez `.env` privé et limité aux permissions du propriétaire :
 
    ```sh
    chmod 600 .env
@@ -58,7 +59,7 @@ Le dépôt GitHub héberge le code source. L’application elle-même fonctionne
 
    ```
 
-6. Ouvrez `https://VOTRE-DOMAINE`, puis choisissez **Connexion admin** et utilisez le `ADMIN_PASSWORD` configuré.
+6. Ouvrez `https://VOTRE-DOMAINE`, puis choisissez **Connexion admin** et utilisez `ADMIN_USERNAME` et `ADMIN_PASSWORD`. Le compte défini au déploiement est créé et validé automatiquement au démarrage.
 
 Nginx Proxy Manager gère le certificat HTTPS. Le port applicatif `8080` doit être bloqué pour les connexions externes dans le pare-feu ; le cookie de session est limité à HTTPS.
 

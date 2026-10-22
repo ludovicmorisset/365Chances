@@ -1,29 +1,46 @@
+import hashlib
 import hmac
 import os
 import re
 import secrets
+import smtplib
 import sqlite3
+import ssl
 import time
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+from email.message import EmailMessage
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory, session
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data"))
 DATABASE = DATA_DIR / "tombola.sqlite3"
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 SESSION_SECRET = os.environ.get("SESSION_SECRET", "")
+ALLOW_ADMIN_SIGNUP = os.environ.get("ALLOW_ADMIN_SIGNUP", "false").lower() == "true"
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME)
+SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "true").lower() == "true"
+PUBLIC_URL = os.environ.get("PUBLIC_URL", "")
 PRICE_CENTS = 200
 LOGIN_LIMIT = 10
 LOGIN_WINDOW_SECONDS = 15 * 60
+VERIFICATION_TOKEN_HOURS = 24
 login_attempts = {}
 
-if len(ADMIN_PASSWORD) < 16:
-    raise RuntimeError("ADMIN_PASSWORD must contain at least 16 characters")
 if len(SESSION_SECRET) < 32:
     raise RuntimeError("SESSION_SECRET must contain at least 32 characters")
+if ADMIN_PASSWORD and len(ADMIN_PASSWORD) < 16:
+    raise RuntimeError("ADMIN_PASSWORD must contain at least 16 characters")
+if ALLOW_ADMIN_SIGNUP and not all((SMTP_HOST, SMTP_FROM, PUBLIC_URL)):
+    raise RuntimeError("SMTP_HOST, SMTP_FROM and PUBLIC_URL are required when ALLOW_ADMIN_SIGNUP is enabled")
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 app = Flask(__name__, static_folder=None)
@@ -48,6 +65,23 @@ def connect_db():
 
 def initialize_db():
     with connect_db() as connection:
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS admin_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                verified_at TEXT,
+                verification_token_hash TEXT,
+                verification_expires_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )"""
+        )
+        if ADMIN_PASSWORD:
+            connection.execute(
+                "INSERT OR IGNORE INTO admin_users (username, email, password_hash, verified_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
+                (ADMIN_USERNAME, os.environ.get("ADMIN_EMAIL", "admin@localhost"), generate_password_hash(ADMIN_PASSWORD, method="pbkdf2:sha256")),
+            )
         connection.execute(
             """CREATE TABLE IF NOT EXISTS raffles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,7 +204,7 @@ def is_valid_date(value, year):
 
 
 def require_admin():
-    if not session.get("admin"):
+    if not session.get("admin_user_id"):
         return jsonify(error="Connexion administrateur requise."), 401
     supplied_token = request.headers.get("X-CSRF-Token", "")
     expected_token = session.get("csrf_token", "")
@@ -188,6 +222,31 @@ def login_rate_limited():
         return True
     attempts.append(now)
     return False
+
+
+def send_verification_email(email, token):
+    verification_url = f"{PUBLIC_URL.rstrip('/')}/api/verify-email?token={token}"
+    message = EmailMessage()
+    message["Subject"] = "Validez votre compte administrateur"
+    message["From"] = SMTP_FROM
+    message["To"] = email
+    message.set_content(f"Pour valider votre compte administrateur, ouvrez ce lien dans les prochaines 24 heures : {verification_url}")
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+        if SMTP_USE_TLS:
+            server.starttls(context=ssl.create_default_context())
+        if SMTP_USERNAME:
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        server.send_message(message)
+
+
+def store_verification_token(connection, user_id):
+    token = secrets.token_urlsafe(32)
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=VERIFICATION_TOKEN_HOURS)).isoformat()
+    connection.execute(
+        "UPDATE admin_users SET verification_token_hash = ?, verification_expires_at = ? WHERE id = ?",
+        (hashlib.sha256(token.encode()).hexdigest(), expires_at, user_id),
+    )
+    return token
 
 
 @app.after_request
@@ -241,7 +300,7 @@ def public_raffles():
 
 @app.get("/api/admin/raffles")
 def admin_raffles():
-    if not session.get("admin"):
+    if not session.get("admin_user_id"):
         return jsonify(error="Connexion administrateur requise."), 401
     with connect_db() as connection:
         raffles = [raffle_payload(row) for row in connection.execute("SELECT * FROM raffles ORDER BY id")]
@@ -314,11 +373,75 @@ def delete_raffle(raffle_id):
 
 @app.get("/api/auth")
 def auth_state():
-    authenticated = bool(session.get("admin"))
+    authenticated = bool(session.get("admin_user_id"))
     if authenticated:
         session.permanent = True
         session.setdefault("csrf_token", secrets.token_urlsafe(32))
-    return jsonify(authenticated=authenticated, csrfToken=session.get("csrf_token") if authenticated else None)
+    return jsonify(authenticated=authenticated, signupEnabled=ALLOW_ADMIN_SIGNUP, csrfToken=session.get("csrf_token") if authenticated else None)
+
+
+@app.post("/api/register")
+def register():
+    if not ALLOW_ADMIN_SIGNUP:
+        return jsonify(error="La création de compte est désactivée."), 403
+    if login_rate_limited():
+        return jsonify(error="Trop de tentatives. Réessayez dans quelques minutes."), 429
+    body = request.get_json(silent=True) or {}
+    username = body.get("username", "")
+    email = body.get("email", "")
+    password = body.get("password", "")
+    if not isinstance(username, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{3,40}", username):
+        return jsonify(error="L’identifiant doit contenir de 3 à 40 caractères (lettres, chiffres, ., _ ou -)."), 400
+    if not isinstance(email, str) or len(email) > 254 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+        return jsonify(error="Adresse email invalide."), 400
+    if not isinstance(password, str) or len(password) < 12 or len(password) > 256:
+        return jsonify(error="Le mot de passe doit contenir au moins 12 caractères."), 400
+    try:
+        with connect_db() as connection:
+            existing = connection.execute(
+                "SELECT * FROM admin_users WHERE username = ? OR email = ?",
+                (username, email),
+            ).fetchone()
+            if existing and existing["verified_at"]:
+                return jsonify(error="Cet identifiant ou cette adresse email est déjà utilisé."), 409
+            if existing:
+                user_id = existing["id"]
+                connection.execute(
+                    "UPDATE admin_users SET username = ?, email = ?, password_hash = ? WHERE id = ?",
+                    (username, email, generate_password_hash(password, method="pbkdf2:sha256"), user_id),
+                )
+            else:
+                cursor = connection.execute(
+                    "INSERT INTO admin_users (username, email, password_hash) VALUES (?, ?, ?)",
+                    (username, email, generate_password_hash(password, method="pbkdf2:sha256")),
+                )
+                user_id = cursor.lastrowid
+            token = store_verification_token(connection, user_id)
+        send_verification_email(email, token)
+    except sqlite3.IntegrityError:
+        return jsonify(error="Cet identifiant ou cette adresse email est déjà utilisé."), 409
+    except (OSError, smtplib.SMTPException) as error:
+        app.logger.error("Échec de l’envoi du mail de validation : %s", error)
+        return jsonify(error="Impossible d’envoyer le mail de validation. Vérifiez la configuration SMTP."), 503
+    return jsonify(message="Un lien de validation vient d’être envoyé par email."), 201
+
+
+@app.get("/api/verify-email")
+def verify_email():
+    token = request.args.get("token", "")
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    with connect_db() as connection:
+        user = connection.execute(
+            "SELECT id, verification_expires_at FROM admin_users WHERE verification_token_hash = ?",
+            (token_hash,),
+        ).fetchone()
+        if not user or not user["verification_expires_at"] or user["verification_expires_at"] < datetime.now(timezone.utc).isoformat():
+            return "Lien invalide ou expiré. Vous pouvez soumettre à nouveau le formulaire d’inscription.", 400
+        connection.execute(
+            "UPDATE admin_users SET verified_at = CURRENT_TIMESTAMP, verification_token_hash = NULL, verification_expires_at = NULL WHERE id = ?",
+            (user["id"],),
+        )
+    return "Adresse email validée. Vous pouvez maintenant vous connecter à l’administration.", 200
 
 
 @app.post("/api/login")
@@ -326,12 +449,20 @@ def login():
     if login_rate_limited():
         return jsonify(error="Trop de tentatives. Réessayez dans quelques minutes."), 429
     body = request.get_json(silent=True) or {}
+    username = body.get("username", "")
     password = body.get("password", "")
-    if not isinstance(password, str) or not hmac.compare_digest(password.encode(), ADMIN_PASSWORD.encode()):
-        return jsonify(error="Mot de passe incorrect."), 401
+    if not isinstance(username, str) or not isinstance(password, str) or len(username) > 40 or len(password) > 256:
+        return jsonify(error="Identifiant ou mot de passe incorrect."), 401
+    with connect_db() as connection:
+        user = connection.execute("SELECT * FROM admin_users WHERE username = ? COLLATE NOCASE", (username,)).fetchone()
+    if not user:
+        check_password_hash(generate_password_hash("invalid-password", method="pbkdf2:sha256"), password)
+        return jsonify(error="Identifiant ou mot de passe incorrect, ou adresse email non validée."), 401
+    if not user["verified_at"] or not check_password_hash(user["password_hash"], password):
+        return jsonify(error="Identifiant ou mot de passe incorrect, ou adresse email non validée."), 401
     session.clear()
     session.permanent = True
-    session["admin"] = True
+    session["admin_user_id"] = user["id"]
     session["csrf_token"] = secrets.token_urlsafe(32)
     return jsonify(authenticated=True, csrfToken=session["csrf_token"])
 
@@ -347,7 +478,7 @@ def logout():
 
 @app.get("/api/admin/entries")
 def admin_entries():
-    if not session.get("admin"):
+    if not session.get("admin_user_id"):
         return jsonify(error="Connexion administrateur requise."), 401
     raffle_id = request.args.get("raffle", type=int, default=1)
     raffle, denied = require_raffle(raffle_id)
