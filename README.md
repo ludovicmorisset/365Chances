@@ -27,7 +27,7 @@ Le dépôt GitHub héberge le code source. L’application elle-même fonctionne
 3. Connectez-vous au VPS et clonez le dépôt :
 
    ```sh
-   git clone https://github.com/VOTRE-COMPTE/VOTRE-DEPOT.git tombola
+   git clone https://github.com/ludovicmorisset/365Chances.git
    cd tombola
    cp .env.example .env
    ```
