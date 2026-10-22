@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f3ee">
+  <title>365 Chances</title>
+  <style>
+    :root { color-scheme: light; --ink:#202820; --muted:#788077; --paper:#f5f3ee; --surface:#fffefa; --line:#e8e6dd; --green:#285641; --green-dark:#1d4231; --green-soft:#e8f0e9; --orange:#e87a4b; --orange-soft:#fff0e8; --shadow:0 18px 50px rgba(41,49,39,.07); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
+    * { box-sizing:border-box } body { margin:0; min-width:320px; background:var(--paper); color:var(--ink) } button,input { font:inherit } button { cursor:pointer }
+    .app-shell { width:min(1440px,100%); margin:0 auto; padding:30px clamp(18px,4vw,58px) 48px } .topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:50px }
+    .brand { display:inline-flex; align-items:center; gap:11px; color:var(--ink); text-decoration:none; font-size:14px; font-weight:750; letter-spacing:-.02em } .brand-mark { display:grid; place-items:center; width:36px; height:36px; border-radius:12px; color:white; background:var(--green) } .brand-mark svg { width:19px; height:19px }
+    .top-actions,.tabs { display:flex; align-items:center; gap:9px } .top-note { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; font-weight:600 } .status-dot { width:7px; height:7px; border-radius:50%; background:#6da579; box-shadow:0 0 0 4px #e4eee3 }
+    .nav-button,.login-button { border:1px solid var(--line); border-radius:9px; padding:9px 13px; background:var(--surface); color:var(--green-dark); font-size:11px; font-weight:750 } .nav-button.active { border-color:var(--green); background:var(--green); color:#fff } .login-button { display:inline-flex; align-items:center; gap:7px } .login-button svg { width:14px; height:14px }
+    .intro { display:flex; align-items:flex-end; justify-content:space-between; gap:28px; margin-bottom:27px } .eyebrow { display:flex; align-items:center; gap:9px; margin:0 0 13px; color:var(--green); font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase } .eyebrow::before { width:23px; height:1px; background:var(--orange); content:"" }
+    h1 { margin:0; font-family:Georgia,"Times New Roman",serif; font-size:clamp(38px,5vw,60px); font-weight:500; letter-spacing:-.055em; line-height:1.02 } .intro-copy { max-width:500px; margin:14px 0 0; color:var(--muted); font-size:14px; line-height:1.65 } .year-chip { display:flex; flex:0 0 auto; align-items:center; gap:10px; padding:12px 15px; border:1px solid var(--line); border-radius:12px; background:rgba(255,254,250,.65); color:var(--green); font-size:13px; font-weight:750 } .year-chip svg { width:17px; height:17px }
+    .price-banner { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:23px; padding:16px 19px; border:1px solid #e3e8dd; border-radius:13px; background:#eef3eb } .price-main { display:flex; align-items:center; gap:12px } .price-icon { display:grid; place-items:center; width:35px; height:35px; border-radius:11px; background:#dce8da; color:var(--green) } .price-icon svg { width:18px; height:18px } .price-label { color:#657264; font-size:11px } .price-value { margin-top:2px; color:var(--green-dark); font-size:17px; font-weight:800 } .price-note { color:#758072; font-size:11px; text-align:right }
+    .workspace { display:grid; grid-template-columns:minmax(0,1fr) 295px; align-items:start; gap:23px } .calendar-panel,.side-card { border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:var(--shadow) } .calendar-panel { padding:23px } .calendar-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px } .calendar-title { display:flex; align-items:center; gap:10px; margin:0; font-size:14px; font-weight:750 } .calendar-title svg { width:18px; height:18px; color:var(--green) }
+    .legend { display:flex; align-items:center; gap:16px; color:var(--muted); font-size:11px; font-weight:600 } .legend-item { display:inline-flex; align-items:center; gap:7px } .legend-mark { width:9px; height:9px; border:1px solid #d9e6d9; border-radius:3px; background:var(--green-soft) } .legend-mark.taken { border-color:var(--orange); background:var(--orange) }
+    .months-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:17px } .month { min-width:0; padding:14px 12px 12px; border:1px solid #efeee8; border-radius:13px; background:#fff } .month-name { margin:0 0 12px; color:var(--green-dark); font-family:Georgia,"Times New Roman",serif; font-size:17px; font-weight:600 } .weekdays,.days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; text-align:center } .weekday { display:grid; place-items:center; height:22px; color:#a4a79f; font-size:9px; font-weight:750 }
+    .day { position:relative; display:grid; place-items:center; aspect-ratio:1; min-width:0; padding:0; border:0; border-radius:7px; background:transparent; color:#485047; font-size:10px; font-weight:600 } .day.empty { visibility:hidden } .day.available { background:#f7f8f4 } .day.booked { background:var(--orange-soft); color:#c35a31; font-weight:800 } .day.booked::after { position:absolute; right:1px; bottom:1px; width:3px; height:3px; border-radius:50%; background:var(--orange); content:"" } .day.admin-available { cursor:pointer } .day.admin-available:hover { background:var(--green); color:white } .day.admin-booked { cursor:pointer } .day.admin-booked:hover { outline:2px solid var(--orange); outline-offset:1px }
+    .calendar-foot { display:flex; align-items:center; gap:8px; margin:19px 2px 0; color:#92968e; font-size:11px; line-height:1.5 } .calendar-foot svg { width:14px; height:14px; flex:0 0 auto; color:var(--green) } .sidebar { display:grid; gap:14px } .side-card { padding:20px } .summary-heading { display:flex; align-items:center; justify-content:space-between; margin:0 0 17px; font-size:13px; font-weight:750 } .summary-heading svg { width:17px; height:17px; color:var(--green) } .stat-row { display:flex; align-items:flex-end; justify-content:space-between; gap:12px } .stat-number { color:var(--green); font-family:Georgia,"Times New Roman",serif; font-size:47px; line-height:.95; letter-spacing:-.05em } .stat-label { margin-top:7px; color:var(--muted); font-size:11px } .stat-total { padding-bottom:3px; color:#a1a49c; font-size:11px; font-weight:650 } .progress-track { height:5px; margin-top:17px; overflow:hidden; border-radius:10px; background:#edf0e9 } .progress-value { width:0; height:100%; border-radius:inherit; background:var(--green); transition:width .3s ease }
+    .draw-card { position:relative; overflow:hidden; padding:21px; border:0; background:var(--green); color:white } .draw-card::after { position:absolute; top:-42px; right:-37px; width:124px; height:124px; border:1px solid rgba(255,255,255,.15); border-radius:50%; box-shadow:0 0 0 18px rgba(255,255,255,.04),0 0 0 37px rgba(255,255,255,.035); content:"" } .draw-top { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; margin-bottom:17px } .draw-top h2 { margin:0; font-size:14px; font-weight:750 } .draw-icon { display:grid; place-items:center; width:31px; height:31px; border:1px solid rgba(255,255,255,.2); border-radius:10px; background:rgba(255,255,255,.08) } .draw-icon svg { width:17px; height:17px } .draw-description { position:relative; z-index:1; max-width:220px; margin:0 0 18px; color:#d5e4d8; font-size:11px; line-height:1.6 }
+    .action-button { position:relative; z-index:1; display:flex; width:100%; min-height:43px; align-items:center; justify-content:center; gap:9px; padding:10px 14px; border:0; border-radius:9px; background:#fffefa; color:var(--green-dark); font-size:12px; font-weight:800; transition:transform .15s,background .15s } .action-button:hover:not(:disabled) { transform:translateY(-1px); background:#f1eee5 } .action-button:disabled { cursor:not-allowed; opacity:.55 } .action-button svg { width:15px; height:15px }
+    .entries-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:13px } .entries-heading h2 { margin:0; font-size:13px; font-weight:750 } .entry-count { min-width:22px; padding:4px 6px; border-radius:7px; background:#f1f2ed; color:#71776d; text-align:center; font-size:10px; font-weight:750 } .entries-list { display:grid; gap:10px } .entry { display:flex; align-items:center; gap:10px; min-width:0 } .entry-date { display:grid; place-items:center; width:36px; height:38px; flex:0 0 auto; border-radius:9px; background:#f3f2eb; color:var(--green); font-size:10px; font-weight:800; line-height:1.05 } .entry-date span { display:block; color:#8b9087; font-size:8px; font-weight:700; text-transform:uppercase } .entry-info { min-width:0 } .entry-name { overflow:hidden; color:#353c34; font-size:11px; font-weight:700; text-overflow:ellipsis; white-space:nowrap } .entry-phone { margin-top:3px; color:#979b93; font-size:10px } .empty-state { margin:0; padding:11px 0 2px; color:#969a91; font-size:11px; line-height:1.55 } .privacy-note { display:flex; gap:8px; padding:0 3px; color:#92968e; font-size:10px; line-height:1.5 } .privacy-note svg { width:14px; height:14px; flex:0 0 auto }
+    .view { display:none } .view.active { display:block } .admin-intro { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:25px } .admin-intro h1 { font-size:clamp(34px,4vw,48px) } .admin-copy { margin:11px 0 0; color:var(--muted); font-size:13px; line-height:1.6 } .admin-summary { display:flex; gap:10px } .metric { min-width:125px; padding:13px 16px; border:1px solid var(--line); border-radius:12px; background:var(--surface) } .metric strong { display:block; color:var(--green); font-size:19px } .metric span { display:block; margin-top:4px; color:var(--muted); font-size:10px }
+      .admin-panel { border:1px solid var(--line); border-radius:16px; background:var(--surface); box-shadow:var(--shadow) } .admin-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:19px 21px; border-bottom:1px solid var(--line) } .admin-toolbar h2 { margin:0; font-size:14px } .admin-toolbar p { margin:5px 0 0; color:var(--muted); font-size:11px } .admin-add { min-width:155px; background:var(--green); color:white } .admin-add:hover:not(:disabled) { background:var(--green-dark) } .table-wrap { overflow:auto } table { width:100%; border-collapse:collapse; text-align:left } th,td { padding:13px 20px; border-bottom:1px solid #efeee8; font-size:11px } th { color:#858b81; font-size:10px; font-weight:750; text-transform:uppercase; letter-spacing:.06em } td { color:#434a41 } tbody tr:last-child td { border-bottom:0 } .table-name { font-weight:750 } .remove-button { border:1px solid #f0ddd3; border-radius:7px; padding:6px 9px; background:#fff8f4; color:#b95130; font-size:10px; font-weight:750 } .admin-empty { padding:35px 15px; color:#92968e; text-align:center; font-size:12px } .raffle-controls { display:flex; align-items:center; gap:9px } .raffle-controls select,.raffle-form input,.raffle-form textarea { min-height:40px; padding:9px 11px; border:1px solid #e5e5dc; border-radius:9px; background:#fff; color:var(--ink); font:inherit; font-size:12px } .raffle-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; padding:20px } .raffle-form .field-wide { grid-column:1/-1 } .raffle-form textarea { min-height:78px; resize:vertical } .raffle-form input[type=color] { width:100%; padding:4px } .raffle-form-actions { display:flex; gap:9px; grid-column:1/-1 }
+
+    .overlay { position:fixed; z-index:10; inset:0; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(25,34,27,.48); backdrop-filter:blur(5px) } .overlay.open { display:flex } .modal { position:relative; width:min(100%,430px); padding:29px; border:1px solid rgba(255,255,255,.75); border-radius:19px; background:var(--surface); box-shadow:0 24px 80px rgba(19,30,22,.25) } .close-button { position:absolute; top:16px; right:16px; display:grid; place-items:center; width:32px; height:32px; padding:0; border:1px solid var(--line); border-radius:9px; background:transparent; color:#72786f } .close-button svg { width:15px; height:15px } .modal-kicker { margin:0 0 8px; color:var(--green); font-size:10px; font-weight:800; letter-spacing:.13em; text-transform:uppercase } .modal h2 { margin:0; padding-right:32px; font-family:Georgia,"Times New Roman",serif; font-size:29px; font-weight:500; letter-spacing:-.04em } .modal-description { margin:9px 0 22px; color:var(--muted); font-size:12px; line-height:1.6 } .date-highlight { display:inline-flex; align-items:center; gap:8px; margin-bottom:20px; padding:9px 12px; border-radius:9px; background:var(--green-soft); color:var(--green-dark); font-size:12px; font-weight:750 } .form-fields { display:grid; gap:14px } .field { display:grid; gap:7px } .field label { color:#596057; font-size:11px; font-weight:700 } .field input { width:100%; height:43px; padding:0 12px; border:1px solid #e5e5dc; border-radius:9px; background:#fff; color:var(--ink); font-size:13px } .field input:focus-visible,.action-button:focus-visible,.close-button:focus-visible,.nav-button:focus-visible,.login-button:focus-visible { outline:3px solid rgba(63,123,86,.35); outline-offset:2px } .field input::placeholder { color:#b0b3aa } .form-error { min-height:15px; margin:0; color:#bd5432; font-size:11px } .modal-submit { margin-top:4px; background:var(--green); color:white } .modal-submit:hover:not(:disabled) { background:var(--green-dark) } .result-badge { display:grid; place-items:center; width:48px; height:48px; margin-bottom:17px; border-radius:15px; background:var(--orange-soft); color:#d7673c } .result-badge svg { width:23px; height:23px } .winner-card { display:flex; align-items:center; gap:13px; margin:20px 0; padding:14px; border:1px solid #f0e8dc; border-radius:12px; background:#fffaf3 } .winner-name { font-size:14px; font-weight:800 } .winner-date,.result-phone { margin-top:4px; color:#898d84; font-size:11px } .result-submit { background:var(--green); color:white } .notice { position:fixed; z-index:20; right:20px; bottom:20px; max-width:min(390px,calc(100vw - 40px)); padding:13px 17px; border-radius:10px; background:#253c2e; color:#fff; box-shadow:var(--shadow); font-size:12px } .notice.error { background:#a9432c }
+    @media (max-width:1060px) { .workspace { grid-template-columns:minmax(0,1fr) 265px; gap:16px } .calendar-panel { padding:18px } .months-grid { gap:11px } .month { padding:12px 8px 9px } }
+    @media (max-width:820px) { .workspace { grid-template-columns:1fr } .sidebar { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start } .entries-card { grid-column:1 } .privacy-note { grid-column:2 } .topbar { margin-bottom:39px } .admin-intro { display:block } .admin-summary { margin-top:18px } }
+    @media (max-width:600px) { .app-shell { padding-top:20px } .topbar { flex-wrap:wrap; margin-bottom:34px } .top-actions { gap:6px } .top-note { display:none } .nav-button,.login-button { padding:8px 10px; font-size:10px } .intro { display:block; margin-bottom:20px } h1 { font-size:44px } .intro-copy { font-size:13px } .year-chip { display:inline-flex; margin-top:16px } .price-banner { align-items:flex-start; padding:13px } .price-note { max-width:135px; font-size:10px; line-height:1.5 } .calendar-panel { padding:14px 11px; border-radius:14px } .calendar-toolbar { display:block; margin:2px 3px 15px } .legend { margin-top:12px } .months-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px } .month { padding:11px 7px 8px } .month-name { margin-bottom:9px; font-size:15px } .day { font-size:9px } .weekday { font-size:8px } .calendar-foot { font-size:10px; line-height:1.5 } .sidebar { grid-template-columns:1fr 1fr; gap:10px } .side-card { padding:15px; border-radius:14px } .summary-heading { font-size:12px } .stat-number { font-size:39px } .stat-total { font-size:10px } .draw-card { padding:16px } .draw-description { font-size:10px } .entries-card,.privacy-note { grid-column:1/-1 } .modal { padding:25px 21px } .admin-summary { gap:7px } .metric { min-width:0; flex:1; padding:11px } .admin-toolbar { align-items:flex-start; padding:15px } .admin-add { min-width:125px; font-size:10px } th,td { padding:12px 14px; white-space:nowrap } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; transition-duration:.01ms!important } }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" id="brand-home" aria-label="365 Chances, accueil"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 7.5h14v12H5zM8 4.5v5M16 4.5v5M5 11h14M9 14.5h2m2 0h2m-6 3h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>365 Chances</span></a>
+      <div class="top-actions"><div class="top-note"><span class="status-dot"></span> Tombola ouverte</div><nav class="tabs" aria-label="Navigation"><button class="nav-button active" id="public-tab" type="button">Calendrier</button><button class="nav-button" id="admin-tab" type="button" hidden>Administration</button></nav><button class="login-button" id="login-button" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 1 1 8 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg> Connexion admin</button></div>
+    </header>
+
+    <section class="view active" id="public-view" aria-labelledby="page-title">
+      <div class="intro"><div><p class="eyebrow">Votre tombola, tout simplement</p><h1 id="page-title">Un jour, une chance.</h1><p class="intro-copy">Chaque date est un ticket pour le grand tirage. Consultez les disponibilités et contactez l’organisateur pour réserver.</p></div><div class="year-chip"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="6" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 3.5v5M16 3.5v5M4 10h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span id="season-label">Saison</span></div></div>
+      <div class="price-banner"><div class="price-main"><span class="price-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M14.8 8.8c-.5-.6-1.4-.9-2.5-.9-1.5 0-2.6.7-2.6 1.8 0 2.8 5.5 1.1 5.5 4 0 1.2-1.1 2.1-2.8 2.1-1.2 0-2.2-.4-2.9-1.1M12 6.5v11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><div><div class="price-label">Participation</div><div class="price-value">2 € <span style="font-size:12px;font-weight:600">par date</span></div></div></div><div class="price-note">Une date réservée = une participation au tirage.</div></div>
+      <div class="raffle-controls" style="margin-bottom:18px"><label for="public-raffle-select">Tombola</label><select id="public-raffle-select" aria-label="Choisir une tombola"></select></div>
+      <div class="workspace"><section class="calendar-panel" aria-label="Calendrier annuel"><div class="calendar-toolbar"><h2 class="calendar-title"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 3v4m8-4v4M4 9h16m-11 4h2m3 0h2m-7 4h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg> Calendrier annuel</h2><div class="legend" aria-label="Légende"><span class="legend-item"><span class="legend-mark"></span> Disponible</span><span class="legend-item"><span class="legend-mark taken"></span> Réservé</span></div></div><div class="months-grid" id="months-grid"></div><p class="calendar-foot"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5m0-8h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span id="calendar-help">Les dates sont réservées par l’organisateur. Contactez-le pour participer.</span></p></section>
+        <aside class="sidebar" aria-label="Informations de la tombola"><section class="side-card"><h2 class="summary-heading"><span>Les participations</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20m6-8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-3a3.5 3.5 0 0 1 0 6.8m2 7v-1.5a3.5 3.5 0 0 0-2.7-3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></h2><div class="stat-row"><div><div class="stat-number" id="count-number">0</div><div class="stat-label">dates réservées</div></div><div class="stat-total" id="stat-total">sur 365 jours</div></div><div class="progress-track" aria-label="Progression des réservations"><div class="progress-value" id="progress-value"></div></div></section>
+          <section class="side-card draw-card" id="draw-card" hidden><div class="draw-top"><h2>Le grand tirage</h2><span class="draw-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.2 5.1 5.5.5-4.2 3.6 1.3 5.3-4.8-2.8-4.8 2.8 1.3-5.3-4.2-3.6 5.5-.5L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span></div><p class="draw-description">Effectuez le tirage au sort parmi toutes les dates réservées.</p><button class="action-button" id="draw-button" type="button" disabled><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.4-6.4-2.1 2.1M7.7 16.3l-2.1 2.1m12.8 0-2.1-2.1m-8.6-8.6L5.6 5.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.7"/></svg> Lancer le tirage</button></section>
+          <section class="side-card entries-card" id="recent-card" hidden><div class="entries-heading"><h2>Dernières participations</h2><span class="entry-count" id="entry-count">0</span></div><div class="entries-list" id="entries-list"></div></section>
+          <div class="privacy-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 5v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>Les coordonnées des participants sont visibles uniquement par l’administrateur.</span></div></aside></div>
+    </section>
+
+    <section class="view" id="admin-view" aria-labelledby="admin-title"><div class="admin-intro"><div><p class="eyebrow">Espace sécurisé</p><h1 id="admin-title">Administration.</h1><p class="admin-copy">Gérez les dates, les acheteurs et le tirage de votre tombola.</p></div><div class="admin-summary"><div class="metric"><strong id="admin-count">0</strong><span>dates réservées</span></div><div class="metric"><strong id="admin-revenue">0 €</strong><span>montant des participations</span></div></div></div>
+      <section class="admin-panel" style="margin-bottom:20px"><div class="admin-toolbar"><div><h2>Personnaliser les tombolas</h2><p>Créez plusieurs tombolas et gérez leur identité visuelle.</p></div><div class="raffle-controls"><select id="admin-raffle-select" aria-label="Choisir une tombola"></select><button class="action-button admin-add" id="new-raffle" type="button">Nouvelle tombola</button></div></div><form class="raffle-form" id="raffle-form"><div class="field"><label for="raffle-title">Titre</label><input id="raffle-title" name="title" maxlength="100" required></div><div class="field"><label for="raffle-year">Année du calendrier</label><input id="raffle-year" name="year" type="number" min="1900" max="2100" step="1" required></div><div class="field"><label for="raffle-logo">Logo (URL HTTPS ou chemin local)</label><input id="raffle-logo" name="logoUrl" maxlength="500" placeholder="https://…"></div><div class="field field-wide"><label for="raffle-description">Description</label><textarea id="raffle-description" name="description" maxlength="500"></textarea></div><div class="field"><label for="raffle-primary">Couleur principale</label><input id="raffle-primary" name="primaryColor" type="color" value="#285641"></div><div class="field"><label for="raffle-accent">Couleur d’accent</label><input id="raffle-accent" name="accentColor" type="color" value="#e87a4b"></div><div class="raffle-form-actions"><button class="action-button admin-add" type="submit">Enregistrer</button><button class="remove-button" id="delete-raffle" type="button">Supprimer cette tombola</button></div></form></section>
+      <section class="admin-panel"><div class="admin-toolbar"><div><h2>Dates réservées & acheteurs</h2><p>Chaque réservation est enregistrée au tarif de 2 € par date.</p></div><button class="action-button admin-add" id="add-booking" type="button">Ajouter une date</button></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>Prix</th><th>Actions</th></tr></thead><tbody id="admin-entries"></tbody></table><div class="admin-empty" id="admin-empty">Aucune date réservée pour le moment.</div></div></section>
+    </section>
+  </main>
+
+  <div class="overlay" id="login-overlay" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="login-title"><button class="close-button" type="button" aria-label="Fermer" data-close><svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><p class="modal-kicker">Accès protégé</p><h2 id="login-title">Connexion admin.</h2><p class="modal-description">Saisissez le mot de passe administrateur configuré sur le serveur.</p><form id="login-form" novalidate><div class="form-fields"><div class="field"><label for="admin-password">Mot de passe</label><input id="admin-password" name="password" type="password" autocomplete="current-password" required></div><p class="form-error" id="login-error" aria-live="polite"></p><button class="action-button modal-submit" type="submit">Se connecter</button></div></form></section></div>
+  <div class="overlay" id="booking-overlay" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="booking-title"><button class="close-button" type="button" aria-label="Fermer" data-close><svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><p class="modal-kicker">Réservation admin · 2 €</p><h2 id="booking-title">Ajouter une participation.</h2><p class="modal-description" id="booking-description">Enregistrez l’acheteur de cette date. Le paiement de 2 € est suivi en dehors du site.</p><div class="date-highlight"><span id="selected-date-label"></span></div><form id="booking-form" novalidate><div class="form-fields"><div class="field"><label for="first-name">Prénom</label><input id="first-name" name="firstName" autocomplete="given-name" maxlength="60" required></div><div class="field"><label for="last-name">Nom</label><input id="last-name" name="lastName" autocomplete="family-name" maxlength="60" required></div><div class="field"><label for="phone">Numéro de téléphone</label><input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="25" required></div><p class="form-error" id="form-error" aria-live="polite"></p><button class="action-button modal-submit" type="submit">Enregistrer la réservation</button></div></form></section></div>
+  <div class="overlay" id="result-overlay" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="result-title"><button class="close-button" type="button" aria-label="Fermer" data-close><svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><div class="result-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.2 5.1 5.5.5-4.2 3.6 1.3 5.3-4.8-2.8-4.8 2.8 1.3-5.3-4.2-3.6 5.5-.5L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div><p class="modal-kicker">Le hasard a parlé</p><h2 id="result-title">Le jour gagnant est…</h2><p class="modal-description">Résultat du tirage parmi les dates réservées.</p><div class="winner-card"><div><div class="winner-name" id="winner-name"></div><div class="winner-date" id="winner-date"></div><div class="result-phone" id="winner-phone"></div></div></div><button class="action-button result-submit" type="button" data-close>Terminé</button></section></div>
+  <div class="notice" id="notice" role="status" hidden></div>
+
+  <script>
+    (() => {
+      let year = 2026;
+      const PRICE_CENTS = 200;
+      const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+      const shortMonths = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+      const weekdays = ["L", "M", "M", "J", "V", "S", "D"];
+      const grid = document.getElementById("months-grid");
+      let bookings = {};
+      let raffles = [];
+      let activeRaffle = null;
+      let isAdmin = false;
+      let csrfToken = "";
+      let selectedDate = null;
+      let editingBooking = false;
+      let noticeTimeout;
+
+      async function api(path, options = {}) {
+        const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+        if (csrfToken && options.method && options.method !== "GET") headers["X-CSRF-Token"] = csrfToken;
+        const response = await fetch(path, { credentials: "same-origin", ...options, headers });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || "Une erreur est survenue.");
+        return body;
+      }
+
+      function dateKey(month, day) { return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`; }
+      function formatDate(key, long = true) {
+        const [year, month, day] = key.split("-").map(Number);
+        if (!long) return `${day} ${shortMonths[month - 1]}`;
+        return new Intl.DateTimeFormat("fr-FR", { weekday:"long", day:"numeric", month:"long", year:"numeric", timeZone:"UTC" }).format(new Date(Date.UTC(year, month - 1, day)));
+      }
+      function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (character) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" })[character]); }
+      function showNotice(message, error = false) {
+        const notice = document.getElementById("notice");
+        notice.textContent = message;
+        notice.classList.toggle("error", error);
+        notice.hidden = false;
+        window.clearTimeout(noticeTimeout);
+        noticeTimeout = window.setTimeout(() => { notice.hidden = true; }, 4500);
+      }
+      function toggleOverlay(overlay, open) {
+        overlay.classList.toggle("open", open);
+        document.body.style.overflow = open ? "hidden" : "";
+        if (open) {
+          const focusable = overlay.querySelector("input, button:not([data-close])");
+          if (focusable) window.setTimeout(() => focusable.focus(), 20);
+        }
+      }
+      function closeOverlays() { document.querySelectorAll(".overlay.open").forEach((overlay) => overlay.classList.remove("open")); document.body.style.overflow = ""; }
+      function setView(view) {
+        document.getElementById("public-view").classList.toggle("active", view === "public");
+        document.getElementById("admin-view").classList.toggle("active", view === "admin" && isAdmin);
+        document.getElementById("public-tab").classList.toggle("active", view === "public");
+        document.getElementById("admin-tab").classList.toggle("active", view === "admin");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      function renderCalendar() {
+        const weekdayLabels = weekdays.map((day) => `<span class="weekday" aria-hidden="true">${day}</span>`).join("");
+        grid.innerHTML = monthNames.map((month, monthIndex) => {
+          const firstDay = (new Date(Date.UTC(year, monthIndex, 1)).getUTCDay() + 6) % 7;
+          const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+          let cells = "";
+          for (let i = 0; i < firstDay; i += 1) cells += '<span class="day empty" aria-hidden="true"></span>';
+          for (let day = 1; day <= daysInMonth; day += 1) {
+            const key = dateKey(monthIndex, day);
+            const taken = Boolean(bookings[key]);
+            const className = `day ${taken ? "booked" : "available"}${isAdmin ? (taken ? " admin-booked" : " admin-available") : ""}`;
+            cells += `<button class="${className}" type="button" data-date="${key}" aria-label="${formatDate(key)}${taken ? " réservé" : " disponible"}">${day}</button>`;
+          }
+          return `<section class="month" aria-label="${month} ${year}"><h3 class="month-name">${month}</h3><div class="weekdays">${weekdayLabels}</div><div class="days">${cells}</div></section>`;
+        }).join("");
+      }
+      function renderSummary() {
+        const entries = Object.entries(bookings).sort(([a], [b]) => a.localeCompare(b));
+        const count = entries.length;
+        document.getElementById("count-number").textContent = count;
+        const daysInYear = (new Date(Date.UTC(year + 1, 0, 1)) - new Date(Date.UTC(year, 0, 1))) / 86400000;
+        document.getElementById("stat-total").textContent = `sur ${daysInYear} jours`;
+        document.getElementById("progress-value").style.width = `${Math.min(count / daysInYear * 100, 100)}%`;
+        document.getElementById("admin-count").textContent = count;
+        document.getElementById("admin-revenue").textContent = new Intl.NumberFormat("fr-FR", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(count * PRICE_CENTS / 100);
+        document.getElementById("draw-button").disabled = count === 0;
+        const latest = isAdmin ? entries.slice(-4).reverse() : [];
+        document.getElementById("entry-count").textContent = count;
+        document.getElementById("entries-list").innerHTML = latest.length ? latest.map(([key, person]) => {
+          const [, month, day] = key.split("-").map(Number);
+          return `<div class="entry"><div class="entry-date">${day}<span>${shortMonths[month - 1]}</span></div><div class="entry-info"><div class="entry-name">${escapeHtml(person.firstName)} ${escapeHtml(person.lastName)}</div><div class="entry-phone">${escapeHtml(person.phone)}</div></div></div>`;
+        }).join("") : '<p class="empty-state">Les premières participations apparaîtront ici.</p>';
+        document.getElementById("recent-card").hidden = !isAdmin;
+        document.getElementById("draw-card").hidden = !isAdmin;
+        const rows = entries.map(([key, person]) => `<tr><td>${formatDate(key)}</td><td class="table-name">${escapeHtml(person.firstName)}</td><td class="table-name">${escapeHtml(person.lastName)}</td><td>${escapeHtml(person.phone)}</td><td>2,00 €</td><td><button class="remove-button" type="button" data-edit="${key}">Modifier</button> <button class="remove-button" type="button" data-remove="${key}">Libérer</button></td></tr>`).join("");
+        document.getElementById("admin-entries").innerHTML = rows;
+        document.getElementById("admin-empty").hidden = count > 0;
+      }
+      function raffleQuery() { return activeRaffle ? `?raffle=${activeRaffle.id}` : ""; }
+      function renderRaffles() {
+        const options = raffles.map((raffle) => `<option value="${raffle.id}">${escapeHtml(raffle.title)}</option>`).join("");
+        document.getElementById("public-raffle-select").innerHTML = options;
+        document.getElementById("admin-raffle-select").innerHTML = options;
+        if (activeRaffle) {
+          document.getElementById("public-raffle-select").value = String(activeRaffle.id);
+          document.getElementById("admin-raffle-select").value = String(activeRaffle.id);
+        }
+        document.getElementById("public-raffle-select").hidden = raffles.length < 2;
+      }
+      function applyRaffle(raffle) {
+        activeRaffle = raffle;
+        year = raffle.year;
+        document.title = `${raffle.title} — ${year} | 365 Chances`;
+        document.getElementById("page-title").textContent = raffle.title;
+        document.getElementById("brand-home").querySelector("span:last-child").textContent = "365 Chances";
+        document.querySelector(".intro-copy").textContent = raffle.description || `Chaque date de ${year} est un ticket pour le grand tirage. Consultez les disponibilités et contactez l’organisateur pour réserver.`;
+        document.getElementById("season-label").textContent = `Saison ${year}`;
+        document.querySelector(".calendar-panel").setAttribute("aria-label", `Calendrier de l'année ${year}`);
+        document.getElementById("calendar-help").textContent = "Les dates sont réservées par l’organisateur. Contactez-le pour participer.";
+        document.documentElement.style.setProperty("--green", raffle.primaryColor);
+        document.documentElement.style.setProperty("--green-dark", raffle.primaryColor);
+        document.documentElement.style.setProperty("--orange", raffle.accentColor);
+        const brandMark = document.querySelector(".brand-mark");
+        if (raffle.logoUrl) {
+          brandMark.innerHTML = `<img src="${escapeHtml(raffle.logoUrl)}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:inherit">`;
+        } else {
+          brandMark.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 7.5h14v12H5zM8 4.5v5M16 4.5v5M5 11h14M9 14.5h2m2 0h2m-6 3h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        }
+        renderRaffles();
+        document.getElementById("raffle-title").value = raffle.title;
+        document.getElementById("raffle-year").value = raffle.year;
+        document.getElementById("raffle-description").value = raffle.description;
+        document.getElementById("raffle-logo").value = raffle.logoUrl;
+        document.getElementById("raffle-primary").value = raffle.primaryColor;
+        document.getElementById("raffle-accent").value = raffle.accentColor;
+        document.getElementById("delete-raffle").disabled = raffle.id === 1;
+      }
+      async function refreshRaffles() {
+        const result = await api(isAdmin ? "/api/admin/raffles" : "/api/raffles");
+        raffles = result.raffles || [];
+        activeRaffle = raffles.find((raffle) => activeRaffle && raffle.id === activeRaffle.id) || raffles[0];
+        if (activeRaffle) applyRaffle(activeRaffle);
+      }
+      async function refreshState() {
+        const state = await api(`/api/state${raffleQuery()}`);
+        if (state.raffle && (!activeRaffle || state.raffle.id !== activeRaffle.id)) applyRaffle(state.raffle);
+        bookings = Object.fromEntries((state.dates || []).map((key) => [key, { reserved: true }]));
+        renderCalendar();
+        renderSummary();
+      }
+      async function refreshAdmin() {
+        try {
+          const auth = await api("/api/auth");
+          isAdmin = Boolean(auth.authenticated);
+          csrfToken = auth.csrfToken || "";
+          document.getElementById("admin-tab").hidden = !isAdmin;
+          document.getElementById("login-button").textContent = isAdmin ? "Déconnexion" : "Connexion admin";
+          document.getElementById("login-button").dataset.logout = isAdmin ? "true" : "false";
+          if (isAdmin) {
+            await refreshRaffles();
+            const result = await api(`/api/admin/entries${raffleQuery()}`);
+            bookings = result.bookings || {};
+          } else if (document.getElementById("admin-view").classList.contains("active")) setView("public");
+          renderCalendar();
+          renderSummary();
+        } catch (error) { showNotice(error.message, true); }
+      }
+
+      grid.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-date]");
+        if (!button || !isAdmin) return;
+        selectedDate = button.dataset.date;
+        if (bookings[selectedDate]) {
+          setView("admin");
+          openBookingForm(selectedDate, true);
+          return;
+        }
+        openBookingForm(selectedDate, false);
+      });
+      document.getElementById("login-button").addEventListener("click", async () => {
+        if (isAdmin) {
+          try {
+            await api("/api/logout", { method:"POST", body:JSON.stringify({}) });
+            isAdmin = false;
+            csrfToken = "";
+            document.getElementById("admin-tab").hidden = true;
+            document.getElementById("login-button").textContent = "Connexion admin";
+            setView("public");
+            await refreshState();
+            renderSummary();
+          } catch (error) { showNotice(error.message, true); }
+          return;
+        }
+        document.getElementById("login-error").textContent = "";
+        document.getElementById("login-form").reset();
+        toggleOverlay(document.getElementById("login-overlay"), true);
+      });
+      document.getElementById("login-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const password = String(new FormData(event.currentTarget).get("password") || "");
+        try {
+          const result = await api("/api/login", { method:"POST", body:JSON.stringify({ password }) });
+          csrfToken = result.csrfToken;
+          isAdmin = true;
+          document.getElementById("admin-tab").hidden = false;
+          document.getElementById("login-button").textContent = "Déconnexion";
+          document.getElementById("login-button").dataset.logout = "true";
+          toggleOverlay(document.getElementById("login-overlay"), false);
+          await refreshState();
+          await refreshAdmin();
+          setView("admin");
+          showNotice("Connexion administrateur établie.");
+        } catch (error) { document.getElementById("login-error").textContent = error.message; }
+      });
+      document.getElementById("public-tab").addEventListener("click", () => setView("public"));
+      document.getElementById("public-raffle-select").addEventListener("change", async (event) => {
+        activeRaffle = raffles.find((raffle) => raffle.id === Number(event.target.value));
+        if (activeRaffle) { applyRaffle(activeRaffle); await refreshState(); }
+      });
+      document.getElementById("admin-raffle-select").addEventListener("change", async (event) => {
+        activeRaffle = raffles.find((raffle) => raffle.id === Number(event.target.value));
+        if (activeRaffle) { applyRaffle(activeRaffle); await refreshState(); await refreshAdmin(); }
+      });
+      document.getElementById("new-raffle").addEventListener("click", async () => {
+        try {
+          const result = await api("/api/admin/raffles", { method:"POST", body:JSON.stringify({ title:"Nouvelle tombola", year:2026, description:"", primaryColor:"#285641", accentColor:"#e87a4b", logoUrl:"" }) });
+          raffles.push(result.raffle);
+          applyRaffle(result.raffle);
+          await refreshAdmin();
+          showNotice("Tombola créée. Personnalisez ses informations puis enregistrez.");
+        } catch (error) { showNotice(error.message, true); }
+      });
+      document.getElementById("raffle-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const values = new FormData(event.currentTarget);
+        const payload = Object.fromEntries(["title", "description", "logoUrl", "primaryColor", "accentColor"].map((key) => [key, String(values.get(key) || "").trim()]));
+        payload.year = Number(values.get("year"));
+        try {
+          const result = await api(`/api/admin/raffles/${activeRaffle.id}`, { method:"PUT", body:JSON.stringify(payload) });
+          raffles = raffles.map((raffle) => raffle.id === result.raffle.id ? result.raffle : raffle);
+          applyRaffle(result.raffle);
+          await refreshState();
+          showNotice("Personnalisation enregistrée.");
+        } catch (error) { showNotice(error.message, true); }
+      });
+      document.getElementById("delete-raffle").addEventListener("click", async () => {
+        if (activeRaffle.id === 1 || !window.confirm(`Supprimer la tombola « ${activeRaffle.title} » et ses réservations ?`)) return;
+        try {
+          await api(`/api/admin/raffles/${activeRaffle.id}`, { method:"DELETE" });
+          activeRaffle = null;
+          await refreshRaffles();
+          await refreshState();
+          await refreshAdmin();
+          showNotice("Tombola supprimée.");
+        } catch (error) { showNotice(error.message, true); }
+      });
+      document.getElementById("admin-tab").addEventListener("click", () => { if (isAdmin) setView("admin"); });
+      document.getElementById("brand-home").addEventListener("click", (event) => { event.preventDefault(); setView("public"); });
+      function openBookingForm(date, editing) {
+        selectedDate = date;
+        editingBooking = editing;
+        const form = document.getElementById("booking-form");
+        form.reset();
+        const booking = bookings[date];
+        if (editing && booking) {
+          form.elements.firstName.value = booking.firstName;
+          form.elements.lastName.value = booking.lastName;
+          form.elements.phone.value = booking.phone;
+        }
+        document.getElementById("selected-date-label").textContent = formatDate(date);
+        document.getElementById("booking-title").textContent = editing ? "Modifier la participation." : "Ajouter une participation.";
+        document.getElementById("booking-description").textContent = editing ? "Modifiez les coordonnées de l’acheteur de cette date. Le prix reste fixé à 2 €." : "Enregistrez l’acheteur de cette date. Le paiement de 2 € est suivi en dehors du site.";
+        document.getElementById("form-error").textContent = "";
+        toggleOverlay(document.getElementById("booking-overlay"), true);
+      }
+      document.getElementById("add-booking").addEventListener("click", () => {
+        const available = grid.querySelector(".day.admin-available");
+        if (!available) { showNotice("Toutes les dates sont déjà réservées."); return; }
+        openBookingForm(available.dataset.date, false);
+      });
+      document.getElementById("booking-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const values = new FormData(event.currentTarget);
+        const firstName = String(values.get("firstName") || "").trim();
+        const lastName = String(values.get("lastName") || "").trim();
+        const phone = String(values.get("phone") || "").trim();
+        const error = document.getElementById("form-error");
+        if (!firstName || !lastName || !phone) { error.textContent = "Merci de remplir les trois champs."; return; }
+        if (phone.replace(/[^0-9]/g, "").length < 8) { error.textContent = "Saisissez un numéro de téléphone valide."; return; }
+        try {
+          const method = editingBooking ? "PUT" : "POST";
+          const path = editingBooking ? `/api/admin/bookings/${selectedDate}` : "/api/admin/bookings";
+          await api(path + (editingBooking ? raffleQuery() : ""), { method, body:JSON.stringify({ raffleId:activeRaffle.id, date:selectedDate, firstName, lastName, phone }) });
+          toggleOverlay(document.getElementById("booking-overlay"), false);
+          await refreshAdmin();
+          showNotice(editingBooking ? "Coordonnées mises à jour." : "Participation enregistrée au tarif de 2 €.");
+        } catch (error) { document.getElementById("form-error").textContent = error.message; }
+      });
+      document.getElementById("admin-entries").addEventListener("click", async (event) => {
+        const editButton = event.target.closest("button[data-edit]");
+        if (editButton) { openBookingForm(editButton.dataset.edit, true); return; }
+        const button = event.target.closest("button[data-remove]");
+        if (!button || !window.confirm(`Libérer la date du ${formatDate(button.dataset.remove)} ?`)) return;
+        try {
+          await api(`/api/admin/bookings/${button.dataset.remove}${raffleQuery()}`, { method:"DELETE" });
+          await refreshAdmin();
+          showNotice("La date est de nouveau disponible.");
+        } catch (error) { showNotice(error.message, true); }
+      });
+      document.getElementById("draw-button").addEventListener("click", async () => {
+        try {
+          const result = await api("/api/admin/draw", { method:"POST", body:JSON.stringify({ raffleId:activeRaffle.id }) });
+          document.getElementById("winner-name").textContent = `${result.winner.firstName} ${result.winner.lastName}`;
+          document.getElementById("winner-date").textContent = formatDate(result.date);
+          document.getElementById("winner-phone").textContent = result.winner.phone;
+          toggleOverlay(document.getElementById("result-overlay"), true);
+        } catch (error) { showNotice(error.message, true); }
+      });
+      document.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", () => { closeOverlays(); }));
+      document.querySelectorAll(".overlay").forEach((overlay) => overlay.addEventListener("click", (event) => { if (event.target === overlay) closeOverlays(); }));
+      document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeOverlays(); });
+      window.setInterval(() => { if (!isAdmin) refreshState().catch(() => {}); }, 30000);
+
+      renderCalendar();
+      refreshRaffles().then(() => refreshState()).then(() => refreshAdmin()).catch((error) => showNotice(error.message, true));
+    })();
+  </script>
+</body>
+</html>
