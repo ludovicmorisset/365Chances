@@ -7,10 +7,10 @@ Application web pour gérer plusieurs tombolas annuelles : calendrier configurab
 ## Fonctionnalités
 
 - Page d’accueil répertoriant les tombolas disponibles, avec calendrier accessible après leur sélection.
-- Calendrier public permettant de choisir une date disponible et de payer 2 € par PayPal ; les dates réservées ou en cours de paiement sont indisponibles.
+- Calendrier public permettant de sélectionner plusieurs dates disponibles avant le paiement PayPal (2 € par date) ; les dates réservées ou en cours de paiement sont indisponibles.
 - Connexion administrateur par identifiant et mot de passe, avec comptes enregistrés en base et mots de passe hachés.
 - Inscription de comptes facultative via `ALLOW_ADMIN_SIGNUP` ; les nouveaux comptes doivent valider leur adresse email via SMTP avant de se connecter.
-- Espace admin pour gérer plusieurs tombolas, choisir leur année de calendrier et personnaliser leur titre, description, couleurs et logo, ajouter des réservations, consulter les acheteurs, libérer une date et lancer le tirage.
+- Espace admin pour gérer plusieurs tombolas, choisir leur année de calendrier et personnaliser leur titre, description, couleurs et logo, ajouter des réservations, consulter ou exporter en CSV les dates réservées et acheteurs, libérer une date et lancer le tirage.
 - Base SQLite persistante dans un volume Docker.
 - Application accessible sur le port local 8080, à relier à Nginx Proxy Manager pour le domaine et le HTTPS.
 - Limitation des tentatives de connexion, sessions sécurisées, protection CSRF et en-têtes de sécurité.

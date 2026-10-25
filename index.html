@@ -19,7 +19,7 @@
     .workspace { display:grid; grid-template-columns:minmax(0,1fr) 295px; align-items:start; gap:23px } .calendar-panel,.side-card { border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:var(--shadow) } .calendar-panel { padding:23px } .calendar-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px } .calendar-title { display:flex; align-items:center; gap:10px; margin:0; font-size:14px; font-weight:750 } .calendar-title svg { width:18px; height:18px; color:var(--green) }
     .legend { display:flex; align-items:center; gap:16px; color:var(--muted); font-size:11px; font-weight:600 } .legend-item { display:inline-flex; align-items:center; gap:7px } .legend-mark { width:9px; height:9px; border:1px solid #d9e6d9; border-radius:3px; background:var(--green-soft) } .legend-mark.taken { border-color:var(--orange); background:var(--orange) }
     .months-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:17px } .month { min-width:0; padding:14px 12px 12px; border:1px solid #efeee8; border-radius:13px; background:#fff } .month-name { margin:0 0 12px; color:var(--green-dark); font-family:Georgia,"Times New Roman",serif; font-size:17px; font-weight:600 } .weekdays,.days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; text-align:center } .weekday { display:grid; place-items:center; height:22px; color:#a4a79f; font-size:9px; font-weight:750 }
-    .day { position:relative; display:grid; place-items:center; aspect-ratio:1; min-width:0; padding:0; border:0; border-radius:7px; background:transparent; color:#485047; font-size:10px; font-weight:600 } .day.empty { visibility:hidden } .day.available { background:#f7f8f4; cursor:pointer } .day.available:hover { background:var(--green); color:white } .day.booked { background:var(--orange-soft); color:#c35a31; font-weight:800 } .day.booked::after { position:absolute; right:1px; bottom:1px; width:3px; height:3px; border-radius:50%; background:var(--orange); content:"" } .day.admin-available { cursor:pointer } .day.admin-available:hover { background:var(--green); color:white } .day.admin-booked { cursor:pointer } .day.admin-booked:hover { outline:2px solid var(--orange); outline-offset:1px }
+    .day { position:relative; display:grid; place-items:center; aspect-ratio:1; min-width:0; padding:0; border:0; border-radius:7px; background:transparent; color:#485047; font-size:10px; font-weight:600 } .day.empty { visibility:hidden } .day.available { background:#f7f8f4; cursor:pointer } .day.available:hover { background:var(--green); color:white } .day.selected { outline:2px solid var(--green); outline-offset:1px; background:var(--green); color:white } .day.booked { background:var(--orange-soft); color:#c35a31; font-weight:800 } .day.booked::after { position:absolute; right:1px; bottom:1px; width:3px; height:3px; border-radius:50%; background:var(--orange); content:"" } .day.admin-available { cursor:pointer } .day.admin-available:hover { background:var(--green); color:white } .day.admin-booked { cursor:pointer } .day.admin-booked:hover { outline:2px solid var(--orange); outline-offset:1px }
     .calendar-foot { display:flex; align-items:center; gap:8px; margin:19px 2px 0; color:#92968e; font-size:11px; line-height:1.5 } .calendar-foot svg { width:14px; height:14px; flex:0 0 auto; color:var(--green) } .sidebar { display:grid; gap:14px } .side-card { padding:20px } .summary-heading { display:flex; align-items:center; justify-content:space-between; margin:0 0 17px; font-size:13px; font-weight:750 } .summary-heading svg { width:17px; height:17px; color:var(--green) } .stat-row { display:flex; align-items:flex-end; justify-content:space-between; gap:12px } .stat-number { color:var(--green); font-family:Georgia,"Times New Roman",serif; font-size:47px; line-height:.95; letter-spacing:-.05em } .stat-label { margin-top:7px; color:var(--muted); font-size:11px } .stat-total { padding-bottom:3px; color:#a1a49c; font-size:11px; font-weight:650 } .progress-track { height:5px; margin-top:17px; overflow:hidden; border-radius:10px; background:#edf0e9 } .progress-value { width:0; height:100%; border-radius:inherit; background:var(--green); transition:width .3s ease }
     .draw-card { position:relative; overflow:hidden; padding:21px; border:0; background:var(--green); color:white } .draw-card::after { position:absolute; top:-42px; right:-37px; width:124px; height:124px; border:1px solid rgba(255,255,255,.15); border-radius:50%; box-shadow:0 0 0 18px rgba(255,255,255,.04),0 0 0 37px rgba(255,255,255,.035); content:"" } .draw-top { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; margin-bottom:17px } .draw-top h2 { margin:0; font-size:14px; font-weight:750 } .draw-icon { display:grid; place-items:center; width:31px; height:31px; border:1px solid rgba(255,255,255,.2); border-radius:10px; background:rgba(255,255,255,.08) } .draw-icon svg { width:17px; height:17px } .draw-description { position:relative; z-index:1; max-width:220px; margin:0 0 18px; color:#d5e4d8; font-size:11px; line-height:1.6 }
     .action-button { position:relative; z-index:1; display:flex; width:100%; min-height:43px; align-items:center; justify-content:center; gap:9px; padding:10px 14px; border:0; border-radius:9px; background:#fffefa; color:var(--green-dark); font-size:12px; font-weight:800; transition:transform .15s,background .15s } .action-button:hover:not(:disabled) { transform:translateY(-1px); background:#f1eee5 } .action-button:disabled { cursor:not-allowed; opacity:.55 } .action-button svg { width:15px; height:15px }
@@ -54,7 +54,7 @@
        <div id="payment-result" role="status" hidden></div>
 
       <div class="raffle-controls" style="margin-bottom:18px"><label for="public-raffle-select">Tombola</label><select id="public-raffle-select" aria-label="Choisir une tombola"></select></div>
-      <div class="workspace"><section class="calendar-panel" aria-label="Calendrier annuel"><div class="calendar-toolbar"><h2 class="calendar-title"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 3v4m8-4v4M4 9h16m-11 4h2m3 0h2m-7 4h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg> Calendrier annuel</h2><div class="legend" aria-label="Légende"><span class="legend-item"><span class="legend-mark"></span> Disponible</span><span class="legend-item"><span class="legend-mark taken"></span> Réservé</span></div></div><div class="months-grid" id="months-grid"></div><p class="calendar-foot"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5m0-8h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span id="calendar-help">Les dates sont réservées par l’organisateur. Contactez-le pour participer.</span></p></section>
+      <div class="workspace"><section class="calendar-panel" aria-label="Calendrier annuel"><div class="calendar-toolbar"><h2 class="calendar-title"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 3v4m8-4v4M4 9h16m-11 4h2m3 0h2m-7 4h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg> Calendrier annuel</h2><div class="legend" aria-label="Légende"><span class="legend-item"><span class="legend-mark"></span> Disponible</span><span class="legend-item"><span class="legend-mark taken"></span> Réservé</span></div></div><div class="months-grid" id="months-grid"></div><p class="calendar-foot"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5m0-8h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span id="calendar-help">Les dates sont réservées par l’organisateur. Contactez-le pour participer.</span></p><div id="selection-actions" hidden style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px"><span id="selection-summary" aria-live="polite">Aucune date sélectionnée</span><button class="action-button admin-add" id="continue-purchase" type="button" disabled>Continuer</button></div></section>
         <aside class="sidebar" aria-label="Informations de la tombola"><section class="side-card"><h2 class="summary-heading"><span>Les participations</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20m6-8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-3a3.5 3.5 0 0 1 0 6.8m2 7v-1.5a3.5 3.5 0 0 0-2.7-3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></h2><div class="stat-row"><div><div class="stat-number" id="count-number">0</div><div class="stat-label">dates réservées</div></div><div class="stat-total" id="stat-total">sur 365 jours</div></div><div class="progress-track" aria-label="Progression des réservations"><div class="progress-value" id="progress-value"></div></div></section>
           <section class="side-card draw-card" id="draw-card" hidden><div class="draw-top"><h2>Le grand tirage</h2><span class="draw-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.2 5.1 5.5.5-4.2 3.6 1.3 5.3-4.8-2.8-4.8 2.8 1.3-5.3-4.2-3.6 5.5-.5L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span></div><p class="draw-description">Effectuez le tirage au sort parmi toutes les dates réservées.</p><button class="action-button" id="draw-button" type="button" disabled><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.4-6.4-2.1 2.1M7.7 16.3l-2.1 2.1m12.8 0-2.1-2.1m-8.6-8.6L5.6 5.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.7"/></svg> Lancer le tirage</button></section>
           <section class="side-card entries-card" id="recent-card" hidden><div class="entries-heading"><h2>Dernières participations</h2><span class="entry-count" id="entry-count">0</span></div><div class="entries-list" id="entries-list"></div></section>
@@ -63,14 +63,14 @@
 
     <section class="view" id="admin-view" aria-labelledby="admin-title"><div class="admin-intro"><div><p class="eyebrow">Espace sécurisé</p><h1 id="admin-title">Administration.</h1><p class="admin-copy">Gérez les dates, les acheteurs et le tirage de votre tombola.</p></div><div class="admin-summary"><div class="metric"><strong id="admin-count">0</strong><span>dates réservées</span></div><div class="metric"><strong id="admin-revenue">0 €</strong><span>montant des participations</span></div></div></div>
         <section class="admin-panel" id="raffle-admin-panel" style="margin-bottom:20px"><div class="admin-toolbar"><div><h2>Personnaliser les tombolas</h2><p>Créez plusieurs tombolas et gérez leur identité visuelle.</p></div><div class="raffle-controls"><select id="admin-raffle-select" aria-label="Choisir une tombola"></select><button class="action-button admin-add" id="new-raffle" type="button" hidden>Nouvelle tombola</button></div></div><form class="raffle-form" id="raffle-form"><div class="field"><label for="raffle-title">Titre</label><input id="raffle-title" name="title" maxlength="100" required></div><div class="field"><label for="raffle-year">Année du calendrier</label><input id="raffle-year" name="year" type="number" min="1900" max="2100" step="1" required></div><div class="field"><label for="raffle-logo">Logo (URL HTTPS ou chemin local)</label><input id="raffle-logo" name="logoUrl" maxlength="500" placeholder="https://…"></div><div class="field field-wide"><label for="raffle-description">Description</label><textarea id="raffle-description" name="description" maxlength="500"></textarea></div><div class="field"><label for="raffle-primary">Couleur principale</label><input id="raffle-primary" name="primaryColor" type="color" value="#285641"></div><div class="field"><label for="raffle-accent">Couleur d’accent</label><input id="raffle-accent" name="accentColor" type="color" value="#e87a4b"></div><div class="raffle-form-actions"><button class="action-button admin-add" id="save-raffle" type="submit">Enregistrer</button><button class="remove-button" id="delete-raffle" type="button">Supprimer cette tombola</button></div></form><div class="table-wrap"><table><thead><tr><th>Tombola</th><th>Année</th><th>Statut</th><th>Participants</th><th>Actions</th></tr></thead><tbody id="admin-raffles"></tbody></table><div class="admin-empty" id="raffles-empty" hidden>Aucune tombola créée.</div></div></section>
-      <section class="admin-panel"><div class="admin-toolbar"><div><h2>Dates réservées & acheteurs</h2><p>Chaque réservation est enregistrée au tarif de 2 € par date.</p></div><button class="action-button admin-add" id="add-booking" type="button">Ajouter une date</button></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>Prix</th><th>Actions</th></tr></thead><tbody id="admin-entries"></tbody></table><div class="admin-empty" id="admin-empty">Aucune date réservée pour le moment.</div></div></section>
+      <section class="admin-panel"><div class="admin-toolbar"><div><h2>Dates réservées & acheteurs</h2><p>Chaque réservation est enregistrée au tarif de 2 € par date.</p></div><div style="display:flex;gap:9px"><button class="action-button" id="export-csv" type="button">Exporter CSV</button><button class="action-button admin-add" id="add-booking" type="button">Ajouter une date</button></div></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>Prix</th><th>Actions</th></tr></thead><tbody id="admin-entries"></tbody></table><div class="admin-empty" id="admin-empty">Aucune date réservée pour le moment.</div></div></section>
     </section>
   </main>
 
   <div class="overlay" id="login-overlay" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="login-title"><button class="close-button" type="button" aria-label="Fermer" data-close><svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><p class="modal-kicker">Accès protégé</p><h2 id="login-title">Connexion admin.</h2><p class="modal-description" id="login-description">Connectez-vous avec votre identifiant et votre mot de passe.</p><form id="login-form" novalidate><div class="form-fields"><div class="field"><label for="admin-username">Identifiant</label><input id="admin-username" name="username" autocomplete="username" minlength="3" maxlength="40" required></div><div class="field" id="admin-email-field" hidden><label for="admin-email">Adresse email</label><input id="admin-email" name="email" type="email" autocomplete="email" maxlength="254"></div><div class="field"><label for="admin-password">Mot de passe</label><input id="admin-password" name="password" type="password" autocomplete="current-password" minlength="12" required></div><p class="form-error" id="login-error" aria-live="polite"></p><button class="action-button modal-submit" id="login-submit" type="submit">Se connecter</button><button class="remove-button" id="login-mode-toggle" type="button" hidden>Créer un compte</button></div></form></section></div>
   <div class="overlay" id="booking-overlay" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="booking-title"><button class="close-button" type="button" aria-label="Fermer" data-close><svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><p class="modal-kicker">Réservation admin · 2 €</p><h2 id="booking-title">Ajouter une participation.</h2><p class="modal-description" id="booking-description">Enregistrez l’acheteur de cette date. Le paiement de 2 € est suivi en dehors du site.</p><div class="date-highlight"><span id="selected-date-label"></span></div><form id="booking-form" novalidate><div class="form-fields"><div class="field"><label for="first-name">Prénom</label><input id="first-name" name="firstName" autocomplete="given-name" maxlength="60" required></div><div class="field"><label for="last-name">Nom</label><input id="last-name" name="lastName" autocomplete="family-name" maxlength="60" required></div><div class="field"><label for="phone">Numéro de téléphone</label><input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="25" required></div><p class="form-error" id="form-error" aria-live="polite"></p><button class="action-button modal-submit" type="submit">Enregistrer la réservation</button></div></form></section></div>
   <div class="overlay" id="result-overlay" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="result-title"><button class="close-button" type="button" aria-label="Fermer" data-close><svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><div class="result-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.2 5.1 5.5.5-4.2 3.6 1.3 5.3-4.8-2.8-4.8 2.8 1.3-5.3-4.2-3.6 5.5-.5L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div><p class="modal-kicker">Le hasard a parlé</p><h2 id="result-title">Le jour gagnant est…</h2><p class="modal-description">Résultat du tirage parmi les dates réservées.</p><div class="winner-card"><div><div class="winner-name" id="winner-name"></div><div class="winner-date" id="winner-date"></div><div class="result-phone" id="winner-phone"></div></div></div><button class="action-button result-submit" type="button" data-close>Terminé</button></section></div>
-  <div class="overlay" id="purchase-overlay" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="purchase-title"><button class="close-button" type="button" aria-label="Fermer" data-close><svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><p class="modal-kicker">Participation · 2 €</p><h2 id="purchase-title">Choisir cette date.</h2><p class="modal-description">Renseignez vos coordonnées. La date sera bloquée pendant 15 minutes pour finaliser le paiement sécurisé PayPal.</p><div class="date-highlight"><span id="purchase-date-label"></span></div><form id="purchase-form" novalidate><div class="form-fields"><div class="field"><label for="purchase-first-name">Prénom</label><input id="purchase-first-name" name="firstName" autocomplete="given-name" maxlength="60" required></div><div class="field"><label for="purchase-last-name">Nom</label><input id="purchase-last-name" name="lastName" autocomplete="family-name" maxlength="60" required></div><div class="field"><label for="purchase-phone">Numéro de téléphone</label><input id="purchase-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="25" required></div><p class="form-error" id="purchase-error" aria-live="polite"></p><button class="action-button modal-submit" id="purchase-submit" type="submit">Payer 2 € avec PayPal</button></div></form></section></div>
+  <div class="overlay" id="purchase-overlay" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="purchase-title"><button class="close-button" type="button" aria-label="Fermer" data-close><svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><p class="modal-kicker">Participation · 2 € par date</p><h2 id="purchase-title">Choisir vos dates.</h2><p class="modal-description">Sélectionnez toutes les dates souhaitées dans le calendrier, puis renseignez vos coordonnées. Elles seront bloquées pendant 15 minutes pour finaliser le paiement sécurisé PayPal.</p><div class="date-highlight"><span id="purchase-date-label"></span></div><form id="purchase-form" novalidate><div class="form-fields"><div class="field"><label for="purchase-first-name">Prénom</label><input id="purchase-first-name" name="firstName" autocomplete="given-name" maxlength="60" required></div><div class="field"><label for="purchase-last-name">Nom</label><input id="purchase-last-name" name="lastName" autocomplete="family-name" maxlength="60" required></div><div class="field"><label for="purchase-phone">Numéro de téléphone</label><input id="purchase-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="25" required></div><p class="form-error" id="purchase-error" aria-live="polite"></p><button class="action-button modal-submit" id="purchase-submit" type="submit">Payer 2 € avec PayPal</button></div></form></section></div>
   <div class="notice" id="notice" role="status" hidden></div>
 
   <script>
@@ -89,6 +89,8 @@
       let signupEnabled = false;
       let registerMode = false;
       let selectedDate = null;
+      let selectedDates = new Set();
+      let selectedPurchaseDates = [];
       let editingBooking = false;
       let paymentEnabled = false;
       let noticeTimeout;
@@ -148,8 +150,9 @@
           for (let day = 1; day <= daysInMonth; day += 1) {
             const key = dateKey(monthIndex, day);
             const taken = Boolean(bookings[key]);
-            const className = `day ${taken ? "booked" : "available"}${isAdmin ? (taken ? " admin-booked" : " admin-available") : ""}`;
-            cells += `<button class="${className}" type="button" data-date="${key}" aria-label="${formatDate(key)}${taken ? " réservé" : " disponible"}"${taken && !isAdmin ? " disabled" : ""}>${day}</button>`;
+            const selected = !isAdmin && selectedDates.has(key);
+            const className = `day ${taken ? "booked" : "available"}${selected ? " selected" : ""}${isAdmin ? (taken ? " admin-booked" : " admin-available") : ""}`;
+            cells += `<button class="${className}" type="button" data-date="${key}" aria-label="${formatDate(key)}${taken ? " réservé" : selected ? " sélectionné" : " disponible"}" aria-pressed="${selected}"${taken && !isAdmin ? " disabled" : ""}>${day}</button>`;
           }
           return `<section class="month" aria-label="${month} ${year}"><h3 class="month-name">${month}</h3><div class="weekdays">${weekdayLabels}</div><div class="days">${cells}</div></section>`;
         }).join("");
@@ -217,7 +220,8 @@
 
         document.getElementById("season-label").textContent = `Saison ${year}`;
         document.querySelector(".calendar-panel").setAttribute("aria-label", `Calendrier de l'année ${year}`);
-         document.getElementById("calendar-help").textContent = paymentEnabled ? "Choisissez une date disponible pour participer. Les réservations en cours de paiement sont temporairement bloquées." : "Les dates sont réservées par l’organisateur. Contactez-le pour participer.";
+         document.getElementById("calendar-help").textContent = paymentEnabled ? "Sélectionnez une ou plusieurs dates disponibles, puis continuez pour régler votre participation. Les réservations en cours de paiement sont temporairement bloquées." : "Les dates sont réservées par l’organisateur. Contactez-le pour participer.";
+         document.getElementById("selection-actions").hidden = !paymentEnabled;
 
         document.getElementById("payment-result").hidden = paymentEnabled;
         document.getElementById("payment-result").textContent = paymentEnabled ? "Paiement sécurisé par PayPal. La date est réservée après confirmation du paiement." : "Le paiement en ligne sera disponible dès que PayPal aura été configuré.";
@@ -272,9 +276,12 @@
          if (state.raffle && (!activeRaffle || state.raffle.id !== activeRaffle.id)) applyRaffle(state.raffle);
          if (!isAdmin) paymentEnabled = Boolean(state.paymentEnabled);
          applyRaffle(activeRaffle);
-         bookings = isAdmin ? (state.bookings || {}) : Object.fromEntries((state.dates || []).map((key) => [key, { reserved: true }]));
+          bookings = isAdmin ? (state.bookings || {}) : Object.fromEntries((state.dates || []).map((key) => [key, { reserved: true }]));
+         for (const date of selectedDates) if (bookings[date]) selectedDates.delete(date);
+         updateSelectionSummary();
 
-        renderRaffles();
+         renderRaffles();
+
         renderCalendar();
         renderSummary();
       }
@@ -309,9 +316,13 @@
            }
            openBookingForm(selectedDate, false);
          } else if (!bookings[selectedDate] && paymentEnabled) {
-           openPurchaseForm(selectedDate);
+           if (selectedDates.has(selectedDate)) selectedDates.delete(selectedDate);
+           else selectedDates.add(selectedDate);
+           renderCalendar();
+           updateSelectionSummary();
          }
        });
+
 
       document.getElementById("login-button").addEventListener("click", async () => {
         if (isAdmin) {
@@ -381,10 +392,13 @@
       });
        document.getElementById("public-tab").addEventListener("click", () => setView(document.getElementById("public-view").classList.contains("active") ? "home" : "raffle"));
        document.getElementById("return-home").addEventListener("click", () => setView("home"));
-       document.getElementById("raffle-grid").addEventListener("click", async (event) => {
-         const card = event.target.closest("button[data-raffle-id]");
-         if (!card) return;
-         activeRaffle = raffles.find((raffle) => raffle.id === Number(card.dataset.raffleId));
+        document.getElementById("raffle-grid").addEventListener("click", async (event) => {
+          const card = event.target.closest("button[data-raffle-id]");
+          if (!card) return;
+          selectedDates.clear();
+          updateSelectionSummary();
+          activeRaffle = raffles.find((raffle) => raffle.id === Number(card.dataset.raffleId));
+
          if (activeRaffle) {
            applyRaffle(activeRaffle);
            await refreshState();
@@ -452,14 +466,27 @@
       });
       document.getElementById("admin-tab").addEventListener("click", async () => { if (isAdmin) { if (!activeRaffle) await refreshRaffles(); setView("admin"); } });
       document.getElementById("brand-home").addEventListener("click", (event) => { event.preventDefault(); setView("home"); });
-       function openPurchaseForm(date) {
-         selectedDate = date;
+       function updateSelectionSummary() {
+         const dates = [...selectedDates].sort();
+         const count = dates.length;
+         document.getElementById("selection-summary").textContent = count
+           ? `${count} date${count > 1 ? "s" : ""} sélectionnée${count > 1 ? "s" : ""} · ${(count * PRICE_CENTS / 100).toLocaleString("fr-FR", { minimumFractionDigits:2 })} €`
+           : "Aucune date sélectionnée";
+         document.getElementById("continue-purchase").disabled = count === 0;
+       }
+       function openPurchaseForm(dates) {
+         selectedPurchaseDates = [...dates].sort();
          const form = document.getElementById("purchase-form");
          form.reset();
-         document.getElementById("purchase-date-label").textContent = formatDate(date);
+         document.getElementById("purchase-date-label").textContent = selectedPurchaseDates.map(formatDate).join(" · ");
+         document.getElementById("purchase-submit").textContent = `Payer ${(selectedPurchaseDates.length * PRICE_CENTS / 100).toLocaleString("fr-FR", { minimumFractionDigits:2 })} € avec PayPal`;
          document.getElementById("purchase-error").textContent = "";
          toggleOverlay(document.getElementById("purchase-overlay"), true);
        }
+       document.getElementById("continue-purchase").addEventListener("click", () => {
+         if (selectedDates.size) openPurchaseForm([...selectedDates]);
+       });
+
        document.getElementById("purchase-form").addEventListener("submit", async (event) => {
          event.preventDefault();
          const form = event.currentTarget;
@@ -476,7 +503,8 @@
          try {
            const result = await api("/api/payments/paypal/orders", {
              method:"POST",
-             body:JSON.stringify({ raffleId:activeRaffle.id, date:selectedDate, firstName, lastName, phone }),
+              body:JSON.stringify({ raffleId:activeRaffle.id, dates:selectedPurchaseDates, firstName, lastName, phone }),
+
            });
            window.location.assign(result.approvalUrl);
          } catch (purchaseError) {
@@ -502,7 +530,8 @@
              activeRaffle = raffles.find((raffle) => raffle.id === Number(completed.raffleId)) || activeRaffle;
              if (activeRaffle) { applyRaffle(activeRaffle); await refreshState(); setView("raffle"); }
              result.hidden = false;
-             result.textContent = `Paiement confirmé. Votre date du ${formatDate(completed.date)} est réservée.`;
+              result.textContent = `Paiement confirmé. ${completed.dates.length > 1 ? "Vos dates" : "Votre date"} ${completed.dates.map(formatDate).join(", ")} ${completed.dates.length > 1 ? "sont réservées" : "est réservée"}.`;
+
            } else if (paymentStatus === "cancel") {
              const holdId = query.get("hold");
              if (holdId) await api("/api/payments/paypal/cancel", { method:"POST", body:JSON.stringify({ orderId:holdId }) });
@@ -559,7 +588,11 @@
           showNotice(editingBooking ? "Coordonnées mises à jour." : "Participation enregistrée au tarif de 2 €.");
         } catch (error) { document.getElementById("form-error").textContent = error.message; }
       });
-      document.getElementById("admin-entries").addEventListener("click", async (event) => {
+       document.getElementById("export-csv").addEventListener("click", () => {
+         if (activeRaffle) window.location.assign(`/api/admin/entries.csv${raffleQuery()}`);
+       });
+       document.getElementById("admin-entries").addEventListener("click", async (event) => {
+
         const editButton = event.target.closest("button[data-edit]");
         if (editButton) { openBookingForm(editButton.dataset.edit, true); return; }
         const button = event.target.closest("button[data-remove]");
