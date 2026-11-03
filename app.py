@@ -113,12 +113,18 @@ def initialize_db():
                 primary_color TEXT NOT NULL DEFAULT '#285641',
                 accent_color TEXT NOT NULL DEFAULT '#e87a4b',
                 logo_url TEXT NOT NULL DEFAULT '',
+                banner_url TEXT NOT NULL DEFAULT '',
+                background_color TEXT NOT NULL DEFAULT '#f5f3ee',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )"""
         )
         raffle_columns = {row["name"] for row in connection.execute("PRAGMA table_info(raffles)")}
         if "year" not in raffle_columns:
             connection.execute("ALTER TABLE raffles ADD COLUMN year INTEGER NOT NULL DEFAULT 2026")
+        if "banner_url" not in raffle_columns:
+            connection.execute("ALTER TABLE raffles ADD COLUMN banner_url TEXT NOT NULL DEFAULT ''")
+        if "background_color" not in raffle_columns:
+            connection.execute("ALTER TABLE raffles ADD COLUMN background_color TEXT NOT NULL DEFAULT '#f5f3ee'")
         connection.execute(
             """CREATE TABLE IF NOT EXISTS bookings (
                 raffle_id INTEGER NOT NULL DEFAULT 1 REFERENCES raffles(id) ON DELETE CASCADE,
@@ -187,6 +193,8 @@ def raffle_payload(row):
         "primaryColor": row["primary_color"],
         "accentColor": row["accent_color"],
         "logoUrl": row["logo_url"],
+        "bannerUrl": row["banner_url"],
+        "backgroundColor": row["background_color"],
     }
 
 
@@ -203,6 +211,8 @@ def validated_raffle_fields(body):
     primary_color = body.get("primaryColor", "#285641")
     accent_color = body.get("accentColor", "#e87a4b")
     logo_url = body.get("logoUrl", "")
+    banner_url = body.get("bannerUrl", "")
+    background_color = body.get("backgroundColor", "#f5f3ee")
     if not isinstance(title, str) or not title.strip() or len(title.strip()) > 100:
         return None, "Le titre est obligatoire et limité à 100 caractères."
     if isinstance(year, bool) or not isinstance(year, int) or not 1900 <= year <= 2100:
@@ -213,7 +223,11 @@ def validated_raffle_fields(body):
         return None, "Les couleurs doivent être au format hexadécimal #RRGGBB."
     if not isinstance(logo_url, str) or len(logo_url.strip()) > 500 or (logo_url.strip() and not (logo_url.strip().startswith("/") and not logo_url.strip().startswith("//") or logo_url.strip().startswith("https://"))):
         return None, "Le logo doit être une URL HTTPS ou un chemin local."
-    return (title.strip(), year, description.strip(), primary_color.lower(), accent_color.lower(), logo_url.strip()), None
+    if not isinstance(banner_url, str) or len(banner_url.strip()) > 500 or (banner_url.strip() and not (banner_url.strip().startswith("/") and not banner_url.strip().startswith("//") or banner_url.strip().startswith("https://"))):
+        return None, "La bannière doit être une URL HTTPS ou un chemin local."
+    if not isinstance(background_color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", background_color):
+        return None, "La couleur de fond doit être au format hexadécimal #RRGGBB."
+    return (title.strip(), year, description.strip(), primary_color.lower(), accent_color.lower(), logo_url.strip(), banner_url.strip(), background_color.lower()), None
 
 
 def require_raffle(raffle_id):
@@ -651,7 +665,7 @@ def create_raffle():
     fields, error = validated_raffle_fields(body)
     if error:
         return jsonify(error=error), 400
-    title, year, description, primary_color, accent_color, logo_url = fields
+    title, year, description, primary_color, accent_color, logo_url, banner_url, background_color = fields
     base_slug = valid_slug(title)
     slug = base_slug
     with connect_db() as connection:
@@ -660,8 +674,8 @@ def create_raffle():
             slug = f"{base_slug[:55]}-{suffix}"
             suffix += 1
         cursor = connection.execute(
-            "INSERT INTO raffles (slug, title, year, description, primary_color, accent_color, logo_url) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (slug, title, year, description, primary_color, accent_color, logo_url),
+            "INSERT INTO raffles (slug, title, year, description, primary_color, accent_color, logo_url, banner_url, background_color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (slug, title, year, description, primary_color, accent_color, logo_url, banner_url, background_color),
         )
         raffle = connection.execute("SELECT * FROM raffles WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return jsonify(raffle=raffle_payload(raffle)), 201
@@ -676,7 +690,7 @@ def update_raffle(raffle_id):
     fields, error = validated_raffle_fields(body)
     if error:
         return jsonify(error=error), 400
-    title, year, description, primary_color, accent_color, logo_url = fields
+    title, year, description, primary_color, accent_color, logo_url, banner_url, background_color = fields
     current_raffle = get_raffle(raffle_id)
     if not current_raffle:
         return jsonify(error="Cette tombola n’existe pas."), 404
@@ -690,7 +704,7 @@ def update_raffle(raffle_id):
             return jsonify(error="Supprimez ou libérez les réservations avant de changer l’année de cette tombola."), 409
     with connect_db() as connection:
         connection.execute(
-            "UPDATE raffles SET title = ?, year = ?, description = ?, primary_color = ?, accent_color = ?, logo_url = ? WHERE id = ?",
+            "UPDATE raffles SET title = ?, year = ?, description = ?, primary_color = ?, accent_color = ?, logo_url = ?, banner_url = ?, background_color = ? WHERE id = ?",
             (*fields, raffle_id),
         )
         raffle = connection.execute("SELECT * FROM raffles WHERE id = ?", (raffle_id,)).fetchone()

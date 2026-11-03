@@ -1,6 +1,6 @@
 # 365 Chances
 
-Application web pour gérer plusieurs tombolas annuelles : calendrier configurable par année, réservation publique des dates avec paiement PayPal, liste des acheteurs protégée par un compte administrateur, personnalisation des titres, descriptions, couleurs et logos, et tirage aléatoire. Chaque date correspond à une participation de **2 €**. Les paiements sont confirmés par le serveur auprès de PayPal avant l’enregistrement définitif ; une date est bloquée pendant 15 minutes au cours du paiement.
+Application web pour gérer plusieurs tombolas annuelles : calendrier configurable par année, réservation publique des dates avec paiement PayPal, liste des acheteurs protégée par un compte administrateur, personnalisation des titres, descriptions, bannières, logos et couleurs (principale, accent et fond), et tirage aléatoire. Chaque date correspond à une participation de **2 €**. Les paiements sont confirmés par le serveur auprès de PayPal avant l’enregistrement définitif ; une date est bloquée pendant 15 minutes au cours du paiement.
 
 ![Aperçu de l’accueil 365 Chances, sans tombola disponible](assets/accueil-tombola.png)
 
@@ -10,7 +10,7 @@ Application web pour gérer plusieurs tombolas annuelles : calendrier configurab
 - Calendrier public permettant de sélectionner plusieurs dates disponibles avant le paiement PayPal (2 € par date) ; les dates réservées ou en cours de paiement sont indisponibles.
 - Connexion administrateur par identifiant et mot de passe, avec comptes enregistrés en base et mots de passe hachés.
 - Inscription de comptes facultative via `ALLOW_ADMIN_SIGNUP` ; les nouveaux comptes doivent valider leur adresse email via SMTP avant de se connecter.
-- Espace admin pour gérer plusieurs tombolas, choisir leur année de calendrier et personnaliser leur titre, description, couleurs et logo, ajouter des réservations, consulter ou exporter en CSV les dates réservées et acheteurs, libérer une date et lancer le tirage.
+- Espace admin pour gérer plusieurs tombolas, choisir leur année de calendrier et personnaliser leur titre, description, bannière, logo, couleurs principales, d’accent et de fond, ajouter des réservations, consulter ou exporter en CSV les dates réservées et acheteurs, libérer une date et lancer le tirage.
 - Base SQLite persistante dans un volume Docker.
 - Application accessible sur le port local 8080, à relier à Nginx Proxy Manager pour le domaine et le HTTPS.
 - Limitation des tentatives de connexion, sessions sécurisées, protection CSRF et en-têtes de sécurité.
