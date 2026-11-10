@@ -27,6 +27,7 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data"))
 DATABASE = DATA_DIR / "tombola.sqlite3"
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@localhost")
 SESSION_SECRET = os.environ.get("SESSION_SECRET", "")
 ALLOW_ADMIN_SIGNUP = os.environ.get("ALLOW_ADMIN_SIGNUP", "false").lower() == "true"
 SMTP_HOST = os.environ.get("SMTP_HOST", "")
@@ -195,6 +196,7 @@ def raffle_payload(row):
         "logoUrl": row["logo_url"],
         "bannerUrl": row["banner_url"],
         "backgroundColor": row["background_color"],
+        "publicUrl": f"{(PUBLIC_URL.rstrip('/') or request.url_root.rstrip('/'))}/r/{row['slug']}",
     }
 
 
@@ -206,6 +208,9 @@ def get_raffle(raffle_id):
 
 def validated_raffle_fields(body):
     title = body.get("title")
+    slug = body.get("slug")
+    if slug is None or slug == "":
+        slug = valid_slug(title) if isinstance(title, str) else ""
     year = body.get("year", 2026)
     description = body.get("description", "")
     primary_color = body.get("primaryColor", "#285641")
@@ -215,6 +220,8 @@ def validated_raffle_fields(body):
     background_color = body.get("backgroundColor", "#f5f3ee")
     if not isinstance(title, str) or not title.strip() or len(title.strip()) > 100:
         return None, "Le titre est obligatoire et limité à 100 caractères."
+    if not isinstance(slug, str) or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", slug) or len(slug) > 60:
+        return None, "Le lien doit contenir uniquement des lettres minuscules, des chiffres et des tirets."
     if isinstance(year, bool) or not isinstance(year, int) or not 1900 <= year <= 2100:
         return None, "L’année doit être comprise entre 1900 et 2100."
     if not isinstance(description, str) or len(description.strip()) > 500:
@@ -227,7 +234,7 @@ def validated_raffle_fields(body):
         return None, "La bannière doit être une URL HTTPS ou un chemin local."
     if not isinstance(background_color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", background_color):
         return None, "La couleur de fond doit être au format hexadécimal #RRGGBB."
-    return (title.strip(), year, description.strip(), primary_color.lower(), accent_color.lower(), logo_url.strip(), banner_url.strip(), background_color.lower()), None
+    return (title.strip(), slug, year, description.strip(), primary_color.lower(), accent_color.lower(), logo_url.strip(), banner_url.strip(), background_color.lower()), None
 
 
 def require_raffle(raffle_id):
@@ -337,6 +344,7 @@ def complete_paypal_booking(payment_order_id):
         )
         connection.execute("UPDATE payment_orders SET status = 'completed' WHERE id = ?", (payment_order_id,))
         raffle = connection.execute("SELECT title FROM raffles WHERE id = ?", (order["raffle_id"],)).fetchone()
+    send_admin_booking_email(raffle["title"], order["first_name"], order["last_name"], order["phone"], dates)
     for booking_date in dates:
         send_booking_confirmation_sms(order["phone"], order["first_name"], booking_date, raffle["title"])
     return True
@@ -405,6 +413,29 @@ def send_verification_email(email, token):
         server.send_message(message)
 
 
+def send_admin_booking_email(raffle_title, first_name, last_name, phone, dates):
+    if not SMTP_HOST or not SMTP_FROM or not ADMIN_EMAIL or ADMIN_EMAIL == "admin@localhost":
+        return
+    for booking_date in dates:
+        message = EmailMessage()
+        message["Subject"] = f"Nouvelle participation — {raffle_title}"
+        message["From"] = SMTP_FROM
+        message["To"] = ADMIN_EMAIL
+        message.set_content(
+            f"Une nouvelle participation a été enregistrée pour la tombola « {raffle_title} ».\n\n"
+            f"Participant : {first_name} {last_name}\nTéléphone : {phone}\nDate : {booking_date}"
+        )
+        try:
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+                if SMTP_USE_TLS:
+                    server.starttls(context=ssl.create_default_context())
+                if SMTP_USERNAME:
+                    server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(message)
+        except (OSError, smtplib.SMTPException) as error:
+            app.logger.error("Échec de l’envoi du mail de nouvelle participation : %s", error)
+
+
 def store_verification_token(connection, user_id):
     token = secrets.token_urlsafe(32)
     expires_at = (datetime.now(timezone.utc) + timedelta(hours=VERIFICATION_TOKEN_HOURS)).isoformat()
@@ -436,6 +467,15 @@ def index():
 @app.get("/assets/<path:filename>")
 def assets(filename):
     return send_from_directory(BASE_DIR / "assets", filename)
+
+
+@app.get("/r/<slug>")
+def public_raffle_link(slug):
+    with connect_db() as connection:
+        raffle = connection.execute("SELECT id FROM raffles WHERE slug = ?", (slug,)).fetchone()
+    if not raffle:
+        return "Cette tombola n’existe pas.", 404
+    return send_from_directory(BASE_DIR, "index.html")
 
 
 @app.get("/api/health")
@@ -665,14 +705,16 @@ def create_raffle():
     fields, error = validated_raffle_fields(body)
     if error:
         return jsonify(error=error), 400
-    title, year, description, primary_color, accent_color, logo_url, banner_url, background_color = fields
-    base_slug = valid_slug(title)
-    slug = base_slug
+    title, slug, year, description, primary_color, accent_color, logo_url, banner_url, background_color = fields
     with connect_db() as connection:
-        suffix = 2
-        while connection.execute("SELECT 1 FROM raffles WHERE slug = ?", (slug,)).fetchone():
-            slug = f"{base_slug[:55]}-{suffix}"
-            suffix += 1
+        if connection.execute("SELECT 1 FROM raffles WHERE slug = ?", (slug,)).fetchone():
+            if body.get("slug"):
+                return jsonify(error="Ce lien est déjà utilisé par une autre tombola."), 409
+            base_slug = slug
+            suffix = 2
+            while connection.execute("SELECT 1 FROM raffles WHERE slug = ?", (slug,)).fetchone():
+                slug = f"{base_slug[:55]}-{suffix}"
+                suffix += 1
         cursor = connection.execute(
             "INSERT INTO raffles (slug, title, year, description, primary_color, accent_color, logo_url, banner_url, background_color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (slug, title, year, description, primary_color, accent_color, logo_url, banner_url, background_color),
@@ -690,7 +732,7 @@ def update_raffle(raffle_id):
     fields, error = validated_raffle_fields(body)
     if error:
         return jsonify(error=error), 400
-    title, year, description, primary_color, accent_color, logo_url, banner_url, background_color = fields
+    title, slug, year, description, primary_color, accent_color, logo_url, banner_url, background_color = fields
     current_raffle = get_raffle(raffle_id)
     if not current_raffle:
         return jsonify(error="Cette tombola n’existe pas."), 404
@@ -703,8 +745,10 @@ def update_raffle(raffle_id):
         if booking_count:
             return jsonify(error="Supprimez ou libérez les réservations avant de changer l’année de cette tombola."), 409
     with connect_db() as connection:
+        if connection.execute("SELECT 1 FROM raffles WHERE slug = ? AND id != ?", (slug, raffle_id)).fetchone():
+            return jsonify(error="Ce lien est déjà utilisé par une autre tombola."), 409
         connection.execute(
-            "UPDATE raffles SET title = ?, year = ?, description = ?, primary_color = ?, accent_color = ?, logo_url = ?, banner_url = ?, background_color = ? WHERE id = ?",
+            "UPDATE raffles SET title = ?, slug = ?, year = ?, description = ?, primary_color = ?, accent_color = ?, logo_url = ?, banner_url = ?, background_color = ? WHERE id = ?",
             (*fields, raffle_id),
         )
         raffle = connection.execute("SELECT * FROM raffles WHERE id = ?", (raffle_id,)).fetchone()
@@ -906,6 +950,7 @@ def create_booking():
             )
     except sqlite3.IntegrityError:
         return jsonify(error="Cette date est déjà réservée."), 409
+    send_admin_booking_email(raffle["title"], first_name.strip(), last_name.strip(), phone.strip(), [date_value])
     send_booking_confirmation_sms(phone.strip(), first_name.strip(), date_value, raffle["title"])
     return jsonify(date=date_value, priceCents=PRICE_CENTS), 201
 
